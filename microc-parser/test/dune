@@ -5,4 +5,12 @@
   (modules parser_test)
   (preprocess
   (pps ppx_deriving.show ppx_deriving.ord ppx_deriving.eq)))
+
+(executable
+  (name lexer_test)
+  (public_name lexer_test)
+  (libraries microc)
+  (modules lexer_test)
+  (preprocess
+  (pps ppx_deriving.show ppx_deriving.ord ppx_deriving.eq)))
    
