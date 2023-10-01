@@ -1,0 +1,3 @@
+void strings() {
+    return "Pippo";
+}

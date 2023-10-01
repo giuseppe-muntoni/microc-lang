@@ -40,9 +40,11 @@
 %token <int>ILit
 %token <char>CLit
 %token <bool>BLit
+%token <string>SLit
+%token <float>FLit
 %token Assign LeftParen RightParen BlockStart BlockEnd IndexStart IndexEnd ExprEnd
 %token IfT Else ReturnT While For
-%token IntType CharType VoidType BoolType NULL
+%token IntType CharType VoidType BoolType FloatType NULL
 %token Star
 %token Comma
 %token EOF
@@ -58,7 +60,7 @@
 %left     Plus  Minus
 %left     Star  Divided  Modulo
 %nonassoc NotT AddressOf
-%nonassoc IndexStart Uminus           /* highest precedence  */
+%nonassoc IndexStart Uminus           /* highest precedence */
 
 
 /* Starting symbol */
@@ -110,6 +112,7 @@ stmtordec:
 
 typ:
   | IntType {TypI}
+  | FloatType {TypF}
   | CharType {TypC}
   | VoidType {TypV}
   | BoolType {TypB}
@@ -191,6 +194,8 @@ aexpr:
   | _ilit = ILit {ILiteral _ilit |@| to_code_position ($symbolstartpos, $endpos)}
   | _clit = CLit {CLiteral _clit |@| to_code_position ($symbolstartpos, $endpos)}
   | _blit = BLit {BLiteral _blit |@| to_code_position ($symbolstartpos, $endpos)}
+  | _slit = SLit {SLiteral _slit |@| to_code_position ($symbolstartpos, $endpos)}
+  | _flit = FLit {FLiteral _flit |@| to_code_position ($symbolstartpos, $endpos)}
   | NULL {ILiteral 0 |@| to_code_position ($symbolstartpos, $endpos)}
   | LeftParen _rexpr = rexpr RightParen {_rexpr}
   | AddressOf _lexpr = lexpr {Addr _lexpr |@| to_code_position ($symbolstartpos, $endpos)}

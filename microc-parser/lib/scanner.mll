@@ -10,7 +10,7 @@
         tbl
 
     let keywordTable =
-        createHashtable 10 [
+        createHashtable 11 [
             ("if", IfT);
             ("else", Else);
             ("return", ReturnT);
@@ -20,21 +20,22 @@
             ("char", CharType);
             ("void", VoidType);
             ("bool", BoolType);
+            ("float", FloatType);
             ("NULL", NULL)
         ]
 }
 
 (* Scanner specification *)
 let id = ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '0'-'9' '_']*
-let singleLineComment = '/''/'[^'\n']*'\n'
-let multilineComment = '/''*'('*'?)[^'*''/']*'*''/'
-let intLitBase10 = '-'?['1'-'9']['0'-'9']* | '0'
-let intLitHex = '0''x'['0'-'9']*
+let intLitBase10 = ['1'-'9']['0'-'9']* | '0'
+let intLitHex = '0''x'['0'-'9']* (*WRONG*)
+let floatLit = (intLitBase10)'.'['0'-'9']*
 
 rule next_token = parse
-    | [' ' '\t' '\n']
-    | singleLineComment
-    | multilineComment {next_token lexbuf}
+    | ['\n']                        {Lexing.new_line lexbuf; next_token lexbuf}
+    | [' ' '\t']+                   {next_token lexbuf}
+    | "//"                          {single_line_comment lexbuf} 
+    | "/*"                          {multi_line_comment lexbuf} 
     | id as word {
         try
             let token = Hashtbl.find keywordTable word in
@@ -42,33 +43,44 @@ rule next_token = parse
         with Not_found ->
             ID word
      }
-    | '+' { Plus }
-    | '-' { Minus }
-    | '*' { Star }
-    | '/' { Divided }
-    | '%' { Modulo }
-    | '&''&' { AndT }
-    | '|''|' { OrT }
-    | '=''=' { Equals}
-    | '!''=' { Different}
-    | '<''=' { LessThanOrEq}
-    | '<' { LessThan}
-    | '>''=' { GreaterThanOrEq}
-    | '>' { GreaterThan}
-    | '&' { AddressOf }
-    | '!' { NotT }
-    | '\''[^'\'']'\'' as charLit {CLit charLit.[1]}
-    | intLitBase10 as intLit {ILit (int_of_string intLit)}
-    | intLitHex as intLitHex {ILit (int_of_string intLitHex)}
-    | 't''r''u''e' {BLit true}
-    | 'f''a''l''s''e' {BLit false}
-    | '=' {Assign}
-    | '(' {LeftParen}
-    | ')' {RightParen}
-    | '[' {IndexStart}
-    | ']' {IndexEnd}
-    | '{' {BlockStart}
-    | '}' {BlockEnd}
-    | ';' {ExprEnd}
-    | ',' {Comma}
-    | eof {EOF}
+    | '+'                           {Plus}
+    | '-'                           {Minus}
+    | '*'                           {Star}
+    | '/'                           {Divided}
+    | '%'                           {Modulo}
+    | '&''&'                        {AndT}
+    | '|''|'                        {OrT}
+    | '=''='                        {Equals}
+    | '!''='                        {Different}
+    | '<''='                        {LessThanOrEq}
+    | '<'                           {LessThan}
+    | '>''='                        {GreaterThanOrEq}
+    | '>'                           {GreaterThan}
+    | '&'                           {AddressOf}
+    | '!'                           {NotT}
+    | '\''[^'\'']'\'' as charLit    {CLit charLit.[1]}
+    | intLitBase10 as intLit        {ILit (int_of_string intLit)}
+    | intLitHex as intLitHex        {ILit (int_of_string intLitHex)}
+    | floatLit as floatLit          {FLit (float_of_string floatLit)}
+    | '\"'[^'\"']*'\"' as stringLit {SLit (String.sub stringLit 1 ((String.length stringLit) - 2))}
+    | 't''r''u''e'                  {BLit true}
+    | 'f''a''l''s''e'               {BLit false}
+    | '='                           {Assign}
+    | '('                           {LeftParen}
+    | ')'                           {RightParen}
+    | '['                           {IndexStart}
+    | ']'                           {IndexEnd}
+    | '{'                           {BlockStart}
+    | '}'                           {BlockEnd}
+    | ';'                           {ExprEnd}
+    | ','                           {Comma}
+    | eof                           {EOF}
+
+and multi_line_comment = parse    
+        | "*/"  {next_token lexbuf}
+        | '\n'  {Lexing.new_line lexbuf; multi_line_comment lexbuf}
+        | _     {multi_line_comment lexbuf}
+
+and single_line_comment = parse 
+        | "\n"  {Lexing.new_line lexbuf; next_token lexbuf}
+        | _     {single_line_comment lexbuf}

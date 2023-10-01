@@ -54,5 +54,7 @@ let string_of_tokens token =
   | Parser.ID id -> String.concat " " ["ID:"; id]
   | Parser.ILit i -> String.concat  " " ["ILit:"; string_of_int i]
   | Parser.CLit c -> String.concat " " ["CLit:"; String.make 1 c]
-  | Parser.BLit b ->String.concat " " ["BLit:"; string_of_bool b]
+  | Parser.BLit b -> String.concat " " ["BLit:"; string_of_bool b]
+  | Parser.SLit s -> String.concat " " ["SLit:"; s]
+  | Parser.FLit f -> String.concat " " ["FLit:"; string_of_float f]
   | _ -> Hashtbl.find string_of_tokens_table token
