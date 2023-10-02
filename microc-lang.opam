@@ -2,8 +2,8 @@
 opam-version: "2.0"
 synopsis: "microc is a simple subset of the C language."
 description: "microc is a simple subset of the C language."
-maintainer: ["LCI-2022"]
-authors: ["LCI-2022"]
+maintainer: ["Giuseppe Muntoni"]
+authors: ["Giuseppe Muntoni"]
 license: "ISC"
 depends: [
   "ocaml" {>= "4.12"}

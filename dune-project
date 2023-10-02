@@ -4,9 +4,9 @@
 
 (generate_opam_files true)
 
-(authors "LCI-2022")
+(authors "Giuseppe Muntoni")
 
-(maintainers "LCI-2022")
+(maintainers "Giuseppe Muntoni")
 
 (license ISC)
 
