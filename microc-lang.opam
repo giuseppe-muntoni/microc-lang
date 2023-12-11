@@ -7,13 +7,16 @@ authors: ["Giuseppe Muntoni"]
 license: "ISC"
 depends: [
   "ocaml" {>= "4.12"}
-  "dune"
+  "dune" {>= "3.12"}
   "menhir"
+  "base"
   "ppx_deriving"
+  "ppx_let"
   "llvm" {>= "12.0.0"}
+  "odoc" {with-doc}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   [
     "dune"
     "build"

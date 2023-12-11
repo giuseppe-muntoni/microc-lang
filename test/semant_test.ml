@@ -42,7 +42,7 @@ let process_source filename =
   try
     lexbuf |>
     Parsing.parse Scanner.next_token |>
-    Semantic_analysis.type_check |>
+    Semantic_analysis.check_semantic |>
     Ast.show_program |>
     Printf.printf "Semantic analysis succeded!\n\n%s\n"  
   with 

@@ -47,6 +47,7 @@
 %token IntType CharType VoidType BoolType FloatType NULL
 %token Star
 %token Comma
+%token Extern
 %token EOF
 
 /* Precedence and associativity specification */
@@ -75,13 +76,14 @@ program:
   | _topdecl = list(topdecl) EOF {Prog _topdecl}
 
 topdecl:
-  | _vardec = vardecl ExprEnd {Vardec (_vardec.tipo, _vardec.id) |@| to_code_position ($symbolstartpos, $endpos)}
+  | _vardec = vardecl ExprEnd {Vardec (_vardec.tipo, _vardec.id, false) |@| to_code_position ($symbolstartpos, $endpos)}
+  | Extern _vardec = vardecl ExprEnd {Vardec (_vardec.tipo, _vardec.id, true) |@| to_code_position ($symbolstartpos, $endpos)}
   | _fundecl = fundecl {Fundecl _fundecl |@| to_code_position ($symbolstartpos, $endpos)}
 
 vardecl:
   | _typ = typ _vardesc = vardesc { 
     {
-      tipo = getDeclType _vardesc _typ;
+      tipo = getDeclType (List.rev _vardesc) _typ;
       id = getDeclID _vardesc;
     }
   }
@@ -99,7 +101,15 @@ fundecl:
       typ = _typ;
       fname = _id;
       formals = List.map (fun x -> (x.tipo, x.id)) _params;
-      body = _body;
+      body = Some _body;
+    }
+  }
+  | _typ = typ _id = ID LeftParen _params = separated_list(Comma, vardecl) RightParen ExprEnd {
+    {
+      typ = _typ;
+      fname = _id;
+      formals = List.map (fun x -> (x.tipo, x.id)) _params;
+      body = None;
     }
   }
 

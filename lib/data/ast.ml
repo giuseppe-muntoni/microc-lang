@@ -78,13 +78,15 @@ type fun_decl = {
   typ : typ;
   fname : string;
   formals : (typ * identifier) list;
-  body : stmt;
+  body : stmt option;
 }
 [@@deriving show]
 
 type topdecl = topdecl_node annotated_node
 
-and topdecl_node = Fundecl of fun_decl | Vardec of typ * identifier
+and extern = bool
+
+and topdecl_node = Fundecl of fun_decl | Vardec of typ * identifier * extern (* true if extern *)
 [@@deriving show]
 
 type program = Prog of topdecl list [@@deriving show]

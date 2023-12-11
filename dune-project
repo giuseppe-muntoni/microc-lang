@@ -1,4 +1,4 @@
-(lang dune 2.0)
+(lang dune 3.12)
 
 (name microc-lang)
 
@@ -20,7 +20,9 @@
   (ocaml (>= 4.12)) 
    dune
    menhir
+   base
    ppx_deriving
+   ppx_let
    (llvm (>= 12.0.0))))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project

@@ -21,7 +21,8 @@
             ("void", VoidType);
             ("bool", BoolType);
             ("float", FloatType);
-            ("NULL", NULL)
+            ("NULL", NULL);
+            ("extern", Extern)
         ]
 }
 

@@ -1,0 +1,1 @@
+let delete_deadcode ast = Ok(ast)

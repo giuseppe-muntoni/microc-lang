@@ -1,0 +1,1 @@
+val check_types : Ast.program -> (unit, (Location.code_pos * Errors.t)) result

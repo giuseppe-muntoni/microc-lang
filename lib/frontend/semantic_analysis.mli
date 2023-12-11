@@ -1,3 +1,3 @@
 exception Semantic_error of Location.code_pos * string
 
-val type_check : Ast.program -> Ast.program
+val check_semantic : Ast.program -> Ast.program

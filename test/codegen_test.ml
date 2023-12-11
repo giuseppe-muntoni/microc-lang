@@ -45,7 +45,7 @@ let process_source filename =
     let llmodule = 
       lexbuf |>
       Parsing.parse Scanner.next_token |>
-      Semantic_analysis.type_check |>
+      Semantic_analysis.check_semantic |>
       Codegen.to_llvm_module
     in 
     Llvm_analysis.assert_valid_module llmodule; 

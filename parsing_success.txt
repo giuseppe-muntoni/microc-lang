@@ -3078,6 +3078,32 @@ Parsing succeded!
    [{ Ast.loc = <opaque>;
       node =
       (Ast.Fundecl
+         { Ast.typ = Ast.TypV; fname = "strings"; formals = [];
+           body =
+           { Ast.loc = <opaque>;
+             node =
+             (Ast.Block
+                [{ Ast.loc = <opaque>;
+                   node =
+                   (Ast.Stmt
+                      { Ast.loc = <opaque>;
+                        node =
+                        (Ast.Return
+                           (Some { Ast.loc = <opaque>;
+                                   node = (Ast.SLiteral "Pippo") }))
+                        })
+                   }
+                  ])
+             }
+           })
+      }
+     ])
+Parsing succeded!
+
+(Ast.Prog
+   [{ Ast.loc = <opaque>;
+      node =
+      (Ast.Fundecl
          { Ast.typ = Ast.TypI; fname = "main"; formals = [];
            body =
            { Ast.loc = <opaque>;
@@ -16107,6 +16133,57 @@ Parsing succeded!
    [{ Ast.loc = <opaque>;
       node =
       (Ast.Fundecl
+         { Ast.typ = Ast.TypV; fname = "main"; formals = [];
+           body =
+           { Ast.loc = <opaque>;
+             node =
+             (Ast.Block
+                [{ Ast.loc = <opaque>; node = (Ast.Dec (Ast.TypF, "x")) };
+                  { Ast.loc = <opaque>;
+                    node =
+                    (Ast.Stmt
+                       { Ast.loc = <opaque>;
+                         node =
+                         (Ast.Expr
+                            { Ast.loc = <opaque>;
+                              node =
+                              (Ast.Assign (
+                                 { Ast.loc = <opaque>;
+                                   node = (Ast.AccVar "x") },
+                                 { Ast.loc = <opaque>;
+                                   node = (Ast.FLiteral 40.02563463) }
+                                 ))
+                              })
+                         })
+                    };
+                  { Ast.loc = <opaque>;
+                    node =
+                    (Ast.Stmt
+                       { Ast.loc = <opaque>;
+                         node =
+                         (Ast.Expr
+                            { Ast.loc = <opaque>;
+                              node =
+                              (Ast.Assign (
+                                 { Ast.loc = <opaque>;
+                                   node = (Ast.AccVar "x") },
+                                 { Ast.loc = <opaque>;
+                                   node = (Ast.FLiteral 1e-06) }
+                                 ))
+                              })
+                         })
+                    }
+                  ])
+             }
+           })
+      }
+     ])
+Parsing succeded!
+
+(Ast.Prog
+   [{ Ast.loc = <opaque>;
+      node =
+      (Ast.Fundecl
          { Ast.typ = Ast.TypI; fname = "main"; formals = [];
            body =
            { Ast.loc = <opaque>;
@@ -26143,6 +26220,94 @@ Parsing succeded!
                                })
                           })
                      }
+                   ])
+              }
+            })
+       }
+     ])
+Parsing succeded!
+
+(Ast.Prog
+   [{ Ast.loc = <opaque>;
+      node =
+      (Ast.Fundecl
+         { Ast.typ = Ast.TypV; fname = "main"; formals = [];
+           body =
+           { Ast.loc = <opaque>;
+             node =
+             (Ast.Block
+                [{ Ast.loc = <opaque>;
+                   node =
+                   (Ast.Dec ((Ast.TypA (Ast.TypC, (Some 8))), "pippo")) };
+                  { Ast.loc = <opaque>;
+                    node =
+                    (Ast.Stmt
+                       { Ast.loc = <opaque>;
+                         node =
+                         (Ast.Expr
+                            { Ast.loc = <opaque>;
+                              node =
+                              (Ast.Assign (
+                                 { Ast.loc = <opaque>;
+                                   node = (Ast.AccVar "pippo") },
+                                 { Ast.loc = <opaque>;
+                                   node = (Ast.SLiteral "Pippo\\n") }
+                                 ))
+                              })
+                         })
+                    }
+                  ])
+             }
+           })
+      }
+     ])
+Parsing succeded!
+
+(Ast.Prog
+   [{ Ast.loc = <opaque>;
+      node =
+      (Ast.Fundecl
+         { Ast.typ = Ast.TypV; fname = "main"; formals = [];
+           body =
+           { Ast.loc = <opaque>;
+             node =
+             (Ast.Block
+                [{ Ast.loc = <opaque>;
+                   node =
+                   (Ast.Stmt
+                      { Ast.loc = <opaque>;
+                        node =
+                        (Ast.Expr
+                           { Ast.loc = <opaque>;
+                             node =
+                             (Ast.Call ("f",
+                                [{ Ast.loc = <opaque>;
+                                   node = (Ast.SLiteral "pippo") };
+                                  { Ast.loc = <opaque>;
+                                    node = (Ast.ILiteral 5) }
+                                  ]
+                                ))
+                             })
+                        })
+                   }
+                  ])
+             }
+           })
+      };
+     { Ast.loc = <opaque>;
+       node =
+       (Ast.Fundecl
+          { Ast.typ = Ast.TypV; fname = "f";
+            formals = [((Ast.TypA (Ast.TypC, None)), "x"); (Ast.TypI, "y")];
+            body =
+            { Ast.loc = <opaque>;
+              node =
+              (Ast.Block
+                 [{ Ast.loc = <opaque>;
+                    node =
+                    (Ast.Stmt
+                       { Ast.loc = <opaque>; node = (Ast.Return None) })
+                    }
                    ])
               }
             })

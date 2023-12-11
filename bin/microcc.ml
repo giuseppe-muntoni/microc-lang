@@ -11,11 +11,11 @@ let action_function outputfile optimize verify_module = function
       >> Printf.printf "Parsing succeded!\n\n%s\n"
   | Type_check ->
       Parsing.parse Scanner.next_token
-      >> Semantic_analysis.type_check >> Ast.show_program
+      >> Semantic_analysis.check_semantic >> Ast.show_program
       >> Printf.printf "Type-check succeded!\n\n%s\n"
   | Dump_llvm_ir ->
       Parsing.parse Scanner.next_token
-      >> Semantic_analysis.type_check >> Codegen.to_llvm_module
+      >> Semantic_analysis.check_semantic >> Codegen.to_llvm_module
       >> (fun llmodule ->
            if verify_module then Llvm_analysis.assert_valid_module llmodule;
            llmodule)
@@ -23,7 +23,7 @@ let action_function outputfile optimize verify_module = function
       >> Llvm.dump_module
   | Compile ->
       (Parsing.parse Scanner.next_token
-      >> Semantic_analysis.type_check >> Codegen.to_llvm_module
+      >> Semantic_analysis.check_semantic >> Codegen.to_llvm_module
       >> (fun llmodule ->
            if verify_module then Llvm_analysis.assert_valid_module llmodule;
            Llvm_analysis.assert_valid_module llmodule;
