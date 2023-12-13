@@ -11,11 +11,9 @@ let read location =
 
 let update location update_fun = 
   let%bind scope = read location in 
-  try
-    let _ = update_fun scope in
-    return ()
-  with Symbol_table.NotFoundEntry _ ->
-    Error(location, SymbolTableRepositoryErr Errors)
+  match update_fun scope with
+  | Ok(_) -> Ok()
+  | Error(err) -> Error(location, err)
 
 let rec add_from_stmt stmt current_scope_loc = match stmt with
 | { Ast.loc = stmt_location; Ast.node = stmt } ->
@@ -38,14 +36,14 @@ and add_from_stmtordecs stmtordecs current_scope_loc =
   |> List.fold_left (fun res stmtordec -> (
     let%bind _ = res in
     match stmtordec with
-    | Ast.Dec(typ, id) -> update current_scope_loc (Symbol.build_var id typ)
+    | Ast.Dec(typ, id) -> update current_scope_loc (Symbol_builder.build_var id typ)
     | Ast.Stmt(stmt) -> add_from_stmt stmt current_scope_loc
   )) (Ok())
 
 let add_from_fundecl fun_decl = 
   let open Ast in 
   let global_scope_loc = Location.dummy_code_pos in 
-  let%bind _ = update global_scope_loc (Symbol.build_fun fun_decl) in 
+  let%bind _ = update global_scope_loc (Symbol_builder.build_fun fun_decl) in 
   match fun_decl.body with
   | Some body -> (
     match body.node with
@@ -53,9 +51,9 @@ let add_from_fundecl fun_decl =
       let%bind global_scope = read global_scope_loc in 
       let fun_scope = Symbol_table.begin_block global_scope in 
       repository := Repository.add (Location.show_code_pos body.loc) fun_scope !repository;
-      let%bind _ = update body.loc (Symbol.build_vars fun_decl.formals) in
+      let%bind _ = update body.loc (Symbol_builder.build_vars fun_decl.formals) in
       add_from_stmtordecs stmtordecs body.loc) 
-    | _ -> Error(body.loc, SymbolTableRepositoryErr FunBodyIllFormed)
+    | _ -> failwith "Unexpected error: the body of a function must be a block, syntactically"
     )
   | None -> Ok()
 
@@ -64,9 +62,9 @@ let add_from_topdecl topdecl =
   let global_scope_loc = Location.dummy_code_pos in 
   match topdecl.node with 
   | Ast.Vardec (typ, id, true) -> 
-    update global_scope_loc (Symbol.build_extern_var id typ)
+    update global_scope_loc (Symbol_builder.build_extern_var id typ)
   | Ast.Vardec (typ, id, false) -> 
-    update global_scope_loc (Symbol.build_var id typ)
+    update global_scope_loc (Symbol_builder.build_var id typ)
   | Ast.Fundecl fun_decl -> 
     add_from_fundecl fun_decl
 

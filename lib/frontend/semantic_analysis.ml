@@ -11,4 +11,4 @@ let check_semantic ast =
   | Ok(ast) -> 
     ast
   | Error(loc, error) -> 
-    raise (Semantic_error(loc, Errors.pretty_print error))
+    raise (Semantic_error(loc, Errors.to_string error))

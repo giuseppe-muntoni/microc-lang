@@ -1,0 +1,16 @@
+lib: [
+  "_build/install/default/lib/microc-lang/META"
+  "_build/install/default/lib/microc-lang/dune-package"
+  "_build/install/default/lib/microc-lang/opam"
+]
+bin: [
+  "_build/install/default/bin/codegen_test"
+  "_build/install/default/bin/lexer_test"
+  "_build/install/default/bin/microcc"
+  "_build/install/default/bin/parser_test"
+  "_build/install/default/bin/semant_test"
+]
+doc: [
+  "_build/install/default/doc/microc-lang/LICENSE"
+  "_build/install/default/doc/microc-lang/README.md"
+]

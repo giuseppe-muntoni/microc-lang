@@ -49,9 +49,9 @@ and check_types_accvar current_scope id location =
     | Symbol.Var(typ, _) -> 
       return typ
     | _ -> 
-      Error(location, TypeCheckerErr AccessToFun)
+      Error(location, TypeCheckerErr(AccessToFun(id)))
   with Not_found -> 
-    Error(location, TypeCheckerErr SymbolNotFound)
+    Error(location, TypeCheckerErr(NotDeclaredVar(id)))
 
 and check_types_expr current_scope expr = 
   let open Ast in
@@ -93,7 +93,7 @@ and check_types_assign current_scope (access, expr) location =
   | true -> 
     return (PrimitiveType VoidType)
   | false ->
-    Error(location, TypeCheckerErr AssignTypeMismatch)
+    Error(location, TypeCheckerErr(AssignTypeMismatch(access_type, expr_type)))
 
 and check_types_addr current_scope access location = 
   let open Types in 
@@ -117,12 +117,12 @@ and check_types_unaryop current_scope (uop, e) location =
   match (uop, expr_type) with
   | (Ast.Neg, PrimitiveType(Number _)) -> 
     return expr_type
-  | (Ast.Neg, _) -> 
-    Error(location, TypeCheckerErr NegToNonNumeric)
+  | (Ast.Neg, typ) -> 
+    Error(location, TypeCheckerErr(NegToNonNumeric(typ)))
   | (Ast.Not, PrimitiveType BoolType) -> 
     return expr_type
-  | (Ast.Not, _) ->
-    Error(location, TypeCheckerErr NotNonBool)
+  | (Ast.Not, typ) ->
+    Error(location, TypeCheckerErr(NotNonBool(typ)))
 
 and check_types_binop current_scope (binop, e1, e2) location = 
   let%bind e1_type = check_types_expr current_scope e1 in 
@@ -146,8 +146,8 @@ and check_types_binop current_scope (binop, e1, e2) location =
   | (Ast.And, PrimitiveType BoolType, PrimitiveType BoolType)
   | (Ast.Or, PrimitiveType BoolType, PrimitiveType BoolType) -> 
     return (PrimitiveType BoolType)
-  | _ -> 
-    Error(location, TypeCheckerErr WrongBinOpType)
+  | (op, _, _) -> 
+    Error(location, TypeCheckerErr(WrongBinOpType(op)))
 
 and check_types_call current_scope (fname, actual_params) location = 
   let open Types in
@@ -165,32 +165,32 @@ and check_types_call current_scope (fname, actual_params) location =
       if (List.equal (=) params actual_types) then
         return(PrimitiveType return_type)
       else 
-        Error(location, TypeCheckerErr WrongActualParamsType)
+        Error(location, TypeCheckerErr(WrongActualParamsType(fname, params, actual_types)))
     | _ -> 
-      Error(location, TypeCheckerErr CalledVar)
-  with Symbol_table.NotFoundEntry _ -> Error(location, TypeCheckerErr SymbolNotFound)
+      Error(location, TypeCheckerErr(CalledVar(fname)))
+  with Symbol_table.NotFoundEntry _ -> Error(location, TypeCheckerErr(NotDeclaredFun(fname)))
 
-let rec check_types_stmt current_fun current_scope stmt = 
+let rec check_types_stmt (current_fun_name, current_fun_symbol) current_scope stmt = 
   let open Ast in
   let open Types in
   match stmt.node with
   | Ast.If(guard, then_stmt, else_stmt) -> 
-    check_types_if current_fun current_scope (guard, then_stmt, else_stmt)
+    check_types_if (current_fun_name, current_fun_symbol) current_scope (guard, then_stmt, else_stmt)
   | Ast.While(guard, body) -> 
-    check_types_while current_fun current_scope (guard, body)
+    check_types_while (current_fun_name, current_fun_symbol) current_scope (guard, body)
   | Ast.Expr(expr) -> 
     let%bind _ = check_types_expr current_scope expr in 
     return (PrimitiveType VoidType)
   | Ast.Return return -> 
-    check_types_return current_fun current_scope return stmt.loc
+    check_types_return (current_fun_name, current_fun_symbol) current_scope return stmt.loc
   | Ast.Block stmtordecs -> 
-    check_types_stmtordecs current_fun current_scope stmtordecs
+    check_types_stmtordecs (current_fun_name, current_fun_symbol) current_scope stmtordecs
 
-and check_types_return current_fun current_scope return_stmt return_loc = 
+and check_types_return (current_fun_name, current_fun_symbol) current_scope return_stmt return_loc = 
   let open Symbol in
   let open Types in
   let ret_type = (
-    match current_fun with
+    match current_fun_symbol with
     | Fun(ret_type, _) -> PrimitiveType ret_type
     | _ -> failwith "Unexpected error"
   ) in match return_stmt with
@@ -198,21 +198,21 @@ and check_types_return current_fun current_scope return_stmt return_loc =
     if ret_type = PrimitiveType VoidType then
       return (PrimitiveType VoidType)
     else 
-      Error(return_loc, TypeCheckerErr WrongReturnType) 
+      Error(return_loc, TypeCheckerErr(WrongReturnType(current_fun_name, ret_type, PrimitiveType VoidType))) 
   | Some expr -> 
     let%bind expr_type = check_types_expr current_scope expr in 
     if ret_type = expr_type then
       return (PrimitiveType VoidType)
     else 
-      Error(return_loc, TypeCheckerErr WrongReturnType)
+      Error(return_loc, TypeCheckerErr(WrongReturnType(current_fun_name, ret_type, expr_type)))
 
-and check_types_if current_fun current_scope (guard, then_stmt, else_stmt) = 
+and check_types_if (current_fun_name, current_fun_symbol) current_scope (guard, then_stmt, else_stmt) = 
   let open Ast in
   let open Types in
   match%bind (check_types_expr current_scope guard) with
   | PrimitiveType BoolType -> (
-    let%bind then_type = check_types_stmt current_fun current_scope then_stmt in
-    let%bind else_type = check_types_stmt current_fun current_scope else_stmt in 
+    let%bind then_type = check_types_stmt (current_fun_name, current_fun_symbol) current_scope then_stmt in
+    let%bind else_type = check_types_stmt (current_fun_name, current_fun_symbol) current_scope else_stmt in 
     match (then_type, else_type) with 
     | (PrimitiveType VoidType, PrimitiveType VoidType) -> 
       return (PrimitiveType VoidType)
@@ -223,12 +223,12 @@ and check_types_if current_fun current_scope (guard, then_stmt, else_stmt) =
   | _ -> 
     Error (guard.loc, TypeCheckerErr GuardNotBool)
 
-and check_types_while current_fun current_scope (guard, body) =
+and check_types_while (current_fun_name, current_fun_symbol) current_scope (guard, body) =
   let open Ast in
   let open Types in
   match%bind (check_types_expr current_scope guard) with
   | PrimitiveType BoolType -> (
-    match%bind (check_types_stmt current_fun current_scope body) with
+    match%bind (check_types_stmt (current_fun_name, current_fun_symbol) current_scope body) with
     | PrimitiveType VoidType -> 
       return (PrimitiveType VoidType)
     | _ -> 
@@ -236,7 +236,7 @@ and check_types_while current_fun current_scope (guard, body) =
   | _ -> 
     Error (guard.loc, TypeCheckerErr GuardNotBool)
 
-and check_types_stmtordecs current_fun current_scope stmtordecs = 
+and check_types_stmtordecs (current_fun_name, current_fun_symbol) current_scope stmtordecs = 
   let open Types in
   List.fold_left (fun res stmtordec -> 
     let open Ast in
@@ -245,7 +245,7 @@ and check_types_stmtordecs current_fun current_scope stmtordecs =
     | Ast.Dec _ -> 
       return (PrimitiveType VoidType)
     | Ast.Stmt(stmt) -> 
-      check_types_stmt current_fun current_scope stmt
+      check_types_stmt (current_fun_name, current_fun_symbol) current_scope stmt
   ) (Ok(PrimitiveType VoidType)) stmtordecs
 
 let check_types_fundecl fundecl =
@@ -260,9 +260,9 @@ let check_types_fundecl fundecl =
       let%bind global_scope = Symbol_table_repository.read (Location.dummy_code_pos) in 
       let fun_symbol = Symbol_table.lookup fundecl.fname global_scope in 
       let%bind fun_scope = Symbol_table_repository.read stmt.loc in 
-      check_types_stmtordecs fun_symbol fun_scope stmtordecs
+      check_types_stmtordecs (fundecl.fname, fun_symbol) fun_scope stmtordecs
     | _ -> 
-      Error(stmt.loc, TypeCheckerErr IllFormedFunctionBody)
+      failwith "Unexpected error: the body of a function must be a block, syntactically"
 
 let check_types_topdecl topdecl =
   let open Ast in
