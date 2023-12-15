@@ -3,12 +3,15 @@ type t =
   | TypeCheckerErr of type_checker_err 
   | DeadcodeAnalyzerErr of deadcode_err
   | SymbolErr of symbol_err
+  [@@deriving show]
 
 and symbol_err = 
   | DuplicateEntry of Ast.identifier * Symbol.t
+  [@@deriving show]
 
 and repository_err = 
   | ScopeNotFound
+  [@@deriving show]
 
 and type_checker_err =
   | StmtNotVoid 
@@ -27,6 +30,7 @@ and type_checker_err =
   | DerefNotPtr
   | IdxNotInt
   | AccIdxToNotArr
+  [@@deriving show]
 
 and deadcode_err = Prova
 
