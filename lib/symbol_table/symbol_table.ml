@@ -33,3 +33,6 @@ let rec of_alist_aux (symbols, scope_acc) =  match (symbols, scope_acc) with
   | ((ide, symbol) :: xs, Scope(symbol_table, upper_scope)) -> of_alist_aux (xs, Scope(SymbolsMap.add ide symbol symbol_table, upper_scope))
 
 let of_alist symbols = of_alist_aux (symbols, Scope(SymbolsMap.empty, None))
+
+let to_list scope = match scope with
+  | Scope(symbol_table, _) -> SymbolsMap.bindings symbol_table 

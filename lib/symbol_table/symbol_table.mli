@@ -9,3 +9,4 @@ val end_block : 'a t -> 'a t
 val add_entry : Ast.identifier -> 'a -> 'a t -> 'a t 
 val lookup : Ast.identifier -> 'a t -> 'a
 val of_alist : (Ast.identifier * 'a) list -> 'a t 
+val to_list: 'a t -> (Ast.identifier * 'a) list
