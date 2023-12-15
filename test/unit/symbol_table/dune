@@ -1,0 +1,16 @@
+(test
+ (name symbol_builder_test)
+ (modules symbol_builder_test)
+ (libraries microc ounit2 base)
+ (preprocess
+  (pps ppx_let)))
+
+(test
+ (name symbol_table_test)
+ (modules symbol_table_test)
+ (libraries microc ounit2))
+
+(test
+ (name symbol_table_repository_test)
+ (modules symbol_table_repository_test)
+ (libraries microc ounit2 test_utils))
