@@ -5,6 +5,10 @@ module Repository = Map.Make(String)
 
 let repository = ref (Repository.empty);;
 
+let read_all () = 
+  let bindings = Repository.bindings !repository in
+  List.map snd bindings
+
 let read location = 
   try Ok(Repository.find (Location.show_code_pos location) !repository)
   with Not_found -> Error(location, SymbolTableRepositoryErr ScopeNotFound)
@@ -12,8 +16,11 @@ let read location =
 let update location update_fun = 
   let%bind scope = read location in 
   match update_fun scope with
-  | Ok(_) -> Ok()
-  | Error(err) -> Error(location, err)
+  | Ok(updated_scope) -> 
+    repository := Repository.add (Location.show_code_pos location) updated_scope !repository;
+    Ok()
+  | Error(err) -> 
+    Error(location, err)
 
 let rec add_from_stmt stmt current_scope_loc = match stmt with
 | { Ast.loc = stmt_location; Ast.node = stmt } ->
@@ -68,9 +75,27 @@ let add_from_topdecl topdecl =
   | Ast.Fundecl fun_decl -> 
     add_from_fundecl fun_decl
 
+let add_rts_functions () = 
+  let open Ast in
+  let%bind _ = update Location.dummy_code_pos (Symbol_builder.build_fun {
+    typ = Ast.TypV;
+    fname = "print";
+    formals = [
+      (Ast.TypI, "x")
+    ];
+    body = None
+  }) in 
+  update Location.dummy_code_pos (Symbol_builder.build_fun {
+    typ = Ast.TypI;
+    fname = "getint";
+    formals = [];
+    body = None
+  })
+
 let add_from_program program = match program with
 | Ast.Prog topdecls -> 
   repository := Repository.add (Location.show_code_pos Location.dummy_code_pos) (Symbol_table.empty_table) !repository;
+  let%bind _ = add_rts_functions () in 
   List.fold_left (fun res topdecl -> 
     let%bind _ = res in 
     add_from_topdecl topdecl
