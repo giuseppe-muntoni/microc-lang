@@ -1,24 +1,38 @@
-type number = IntType | FloatType
-
-type primitive_type = Number of number | BoolType | CharType | VoidType
+type number = 
+    | IntType 
+    | FloatType
+[@@deriving show]
+  
+type primitive_type = 
+    | Number of number 
+    | BoolType 
+    | CharType 
+    | VoidType
+[@@deriving show]
 
 type array_info = {
-  primitive_type  : primitive_type;
-  ptr_indirection : int;
-  dimensions      : int;
-  sizes           : (int * int option) list;
+    primitive_type  : primitive_type;
+    ptr_indirection : int;
+    dimensions      : int;
+    sizes           : (int * int option) list;
 }
+[@@deriving show]
 
 type ptr_info = {
-  primitive_type  : primitive_type;
-  ptr_indirection : int;
+    primitive_type  : primitive_type;
+    ptr_indirection : int;
 }
+[@@deriving show]
 
 type compound_type = 
-  | Pointer of ptr_info
-  | Array of array_info
+    | Pointer of ptr_info
+    | Array of array_info
+[@@deriving show]
 
-type data_type = PrimitiveType of primitive_type | CompoundType of compound_type
+type data_type = 
+    | PrimitiveType of primitive_type 
+    | CompoundType of compound_type
+[@@deriving show]
 
 let convert_to_primitive_type typ = match typ with 
   | Ast.TypI -> Some(Number IntType)
@@ -51,7 +65,7 @@ let rec make_array_type typ dimensions sizes = match typ with
       primitive_type = ptr_info.primitive_type;
       ptr_indirection = ptr_info.ptr_indirection;
       dimensions = dimensions;
-      sizes = sizes;
+      sizes = List.rev sizes;
     }
   | typ -> match convert_to_primitive_type typ with
     | Some primitive_type -> 
@@ -59,7 +73,7 @@ let rec make_array_type typ dimensions sizes = match typ with
         primitive_type = primitive_type;
         ptr_indirection = 0;
         dimensions = dimensions;
-        sizes = sizes;
+        sizes = List.rev sizes;
       }
     | None -> failwith "Unexpected type conversion error"
 
