@@ -11,6 +11,6 @@
  (libraries microc ounit2))
 
 (test
- (name symbol_table_repository_test)
- (modules symbol_table_repository_test)
+ (name symbol_tables_repository_test)
+ (modules symbol_tables_repository_test)
  (libraries microc ounit2 test_utils))

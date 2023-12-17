@@ -35,13 +35,13 @@ let to_string = fun actual_symbols -> (
 ))
 
 let create_test _ = 
-  let program = Utils.create_ast "test-ex6.mc" in 
-  let res = Symbol_table_repository.create program in 
+  let program = Utils.create_ast "test-ex6" in 
+  let res = Symbol_tables_repository.create program in 
   match res with 
-  | Error(_) ->
-    failwith "Unexpected error"
+  | Error(err) ->
+    assert_bool (Errors.show (snd err)) false 
   | Ok() -> 
-    let actual_symbols = List.map (Symbol_table.to_list) (Symbol_table_repository.read_all ()) in
+    let actual_symbols = List.map (Symbol_table.to_list) (Symbol_tables_repository.read_all ()) in
     assert_equal ~cmp: (fun l1 l2 -> List.equal (=) l1 l2) ~printer: to_string expected_symbols_test_ex6 actual_symbols
 
 let tests = "Tests for module Symbol_table_repository" >::: [

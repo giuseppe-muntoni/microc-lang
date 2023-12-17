@@ -36,14 +36,7 @@ rule next_token = parse
     | ['\n']                        {Lexing.new_line lexbuf; next_token lexbuf}
     | [' ' '\t']+                   {next_token lexbuf}
     | "//"                          {single_line_comment lexbuf} 
-    | "/*"                          {multi_line_comment lexbuf} 
-    | id as word {
-        try
-            let token = Hashtbl.find keywordTable word in
-            token
-        with Not_found ->
-            ID word
-     }
+    | "/*"                          {multi_line_comment lexbuf}
     | '+'                           {Plus}
     | '-'                           {Minus}
     | '*'                           {Star}
@@ -59,13 +52,6 @@ rule next_token = parse
     | '>'                           {GreaterThan}
     | '&'                           {AddressOf}
     | '!'                           {NotT}
-    | '\''[^'\'']'\'' as charLit    {CLit charLit.[1]}
-    | intLitBase10 as intLit        {ILit (int_of_string intLit)}
-    | intLitHex as intLitHex        {ILit (int_of_string intLitHex)}
-    | floatLit as floatLit          {FLit (float_of_string floatLit)}
-    | '\"'[^'\"']*'\"' as stringLit {SLit (String.sub stringLit 1 ((String.length stringLit) - 2))}
-    | 't''r''u''e'                  {BLit true}
-    | 'f''a''l''s''e'               {BLit false}
     | '='                           {Assign}
     | '('                           {LeftParen}
     | ')'                           {RightParen}
@@ -75,6 +61,38 @@ rule next_token = parse
     | '}'                           {BlockEnd}
     | ';'                           {ExprEnd}
     | ','                           {Comma}
+    | '\''[^'\'']'\'' as charLit    {CLit charLit.[1]}
+    | intLitBase10 as intLit        {
+        try 
+            let lit = int_of_string intLit in
+            if (lit <= -2147483649 || lit >= 2147483648) then 
+                raise (Lexing_error(Location.to_lexeme_position lexbuf, "The integer literal exceeds the range of 32 bits"))
+            else 
+                ILit(lit)
+        with Failure _ ->
+            raise (Lexing_error(Location.to_lexeme_position lexbuf, "The integer literal exceeds the range of 32 bits"))
+    }
+    | intLitHex as intLitHex        {
+        try 
+            let lit = int_of_string intLitHex in
+            if (lit <= -2147483649 || lit >= 2147483648) then 
+                raise (Lexing_error(Location.to_lexeme_position lexbuf, "The integer literal exceeds the range of 32 bits"))
+            else 
+                ILit(lit)
+        with Failure _ ->
+            raise (Lexing_error(Location.to_lexeme_position lexbuf, "The integer literal exceeds the range of 32 bits"))
+    }
+    | floatLit as floatLit          {FLit (Float.of_string floatLit)}
+    | "true"                        {BLit true}
+    | "false"                       {BLit false}
+    | '\"'[^'\"']*'\"' as stringLit {SLit (String.sub stringLit 1 ((String.length stringLit) - 2))}
+    | id as word {
+        try
+            let token = Hashtbl.find keywordTable word in
+            token
+        with Not_found ->
+            ID word
+    }
     | eof                           {EOF}
 
 and multi_line_comment = parse    

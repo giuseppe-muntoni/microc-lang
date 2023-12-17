@@ -1,8 +1,14 @@
 open Microc
 
+let make_path sample = 
+  if (String.ends_with ~suffix: ".mc" sample) then
+    String.concat "" ["../../../../../test/samples/"; sample]
+  else
+    String.concat "" ["../../../../../test/samples/"; sample; ".mc"]
+
 let create_ast sample =
   (* TODO: How to resolve this? *)
-  let sample_path = String.concat "" ["../../../../../test/samples/"; sample] in
+  let sample_path = make_path sample in
   let ic = open_in sample_path in 
   let n = in_channel_length ic in
   let s = Bytes.create n in

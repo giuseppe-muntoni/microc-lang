@@ -50,7 +50,7 @@ and check_types_accvar current_scope id location =
       return typ
     | _ -> 
       Error(location, TypeCheckerErr(AccessToFun(id)))
-  with Not_found -> 
+  with Symbol_table.NotFoundEntry _ -> 
     Error(location, TypeCheckerErr(NotDeclaredVar(id)))
 
 and check_types_expr current_scope expr = 
@@ -87,11 +87,16 @@ and check_types_expr current_scope expr =
 
 and check_types_assign current_scope (access, expr) location = 
   let open Types in 
+  let open Ast in
   let%bind access_type = check_types_access current_scope access in 
   let%bind expr_type = check_types_expr current_scope expr in 
   match access_type = expr_type with
   | true -> 
-    return (PrimitiveType VoidType)
+    (match access_type with
+    | CompoundType(Array(_)) ->
+      Error(expr.loc, TypeCheckerErr(ArrNotAssignable access_type))
+    | _ -> 
+      return (access_type))
   | false ->
     Error(location, TypeCheckerErr(AssignTypeMismatch(access_type, expr_type)))
 
@@ -149,6 +154,24 @@ and check_types_binop current_scope (binop, e1, e2) location =
   | (op, _, _) -> 
     Error(location, TypeCheckerErr(WrongBinOpType(op)))
 
+and check_match_actual_formal formal actual = 
+  let open Types in
+  if actual = formal then 
+    true
+  else
+    match (actual, formal) with 
+    | (CompoundType(Array(actual_info)), CompoundType(Array formal_info)) -> 
+      if (actual_info.primitive_type = formal_info.primitive_type 
+        && actual_info.ptr_indirection = formal_info.ptr_indirection
+        && actual_info.dimensions = formal_info.dimensions) then 
+          match (snd (List.hd actual_info.sizes), snd (List.hd formal_info.sizes)) with
+          | (Some _, None) -> true 
+          | (None, None) -> true
+          | _ -> false
+      else
+        false
+    | _ -> false
+
 and check_types_call current_scope (fname, actual_params) location = 
   let open Types in
   let%bind actual_types = (List.fold_left (
@@ -162,7 +185,7 @@ and check_types_call current_scope (fname, actual_params) location =
     let symbol = Symbol_table.lookup fname current_scope in
     match symbol with
     | Symbol.Fun(return_type, params) -> 
-      if (List.equal (=) params actual_types) then
+      if (List.equal (check_match_actual_formal) params actual_types) then
         return(PrimitiveType return_type)
       else 
         Error(location, TypeCheckerErr(WrongActualParamsType(fname, params, actual_types)))
@@ -184,7 +207,8 @@ let rec check_types_stmt (current_fun_name, current_fun_symbol) current_scope st
   | Ast.Return return -> 
     check_types_return (current_fun_name, current_fun_symbol) current_scope return stmt.loc
   | Ast.Block stmtordecs -> 
-    check_types_stmtordecs (current_fun_name, current_fun_symbol) current_scope stmtordecs
+    let%bind block_scope = Symbol_tables_repository.read stmt.loc in 
+    check_types_stmtordecs (current_fun_name, current_fun_symbol) block_scope stmtordecs
 
 and check_types_return (current_fun_name, current_fun_symbol) current_scope return_stmt return_loc = 
   let open Symbol in
@@ -257,9 +281,9 @@ let check_types_fundecl fundecl =
   | Some stmt ->
     match stmt.node with 
     | Block stmtordecs ->
-      let%bind global_scope = Symbol_table_repository.read (Location.dummy_code_pos) in 
+      let%bind global_scope = Symbol_tables_repository.read (Location.dummy_code_pos) in 
       let fun_symbol = Symbol_table.lookup fundecl.fname global_scope in 
-      let%bind fun_scope = Symbol_table_repository.read stmt.loc in 
+      let%bind fun_scope = Symbol_tables_repository.read stmt.loc in 
       check_types_stmtordecs (fundecl.fname, fun_symbol) fun_scope stmtordecs
     | _ -> 
       failwith "Unexpected error: the body of a function must be a block, syntactically"

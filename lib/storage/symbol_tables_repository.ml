@@ -3,6 +3,7 @@ open Base.Result.Let_syntax
 
 module Repository = Map.Make(String)
 
+let actual_program = ref None;;
 let repository = ref (Repository.empty);;
 
 let read_all () = 
@@ -11,7 +12,7 @@ let read_all () =
 
 let read location = 
   try Ok(Repository.find (Location.show_code_pos location) !repository)
-  with Not_found -> Error(location, SymbolTableRepositoryErr ScopeNotFound)
+  with Not_found -> Error(location, SymbolTablesRepositoryErr ScopeNotFound)
 
 let update location update_fun = 
   let%bind scope = read location in 
@@ -49,12 +50,11 @@ and add_from_stmtordecs stmtordecs current_scope_loc =
 
 let add_from_fundecl fun_decl = 
   let open Ast in 
-  let global_scope_loc = Location.dummy_code_pos in 
-  let%bind _ = update global_scope_loc (Symbol_builder.build_fun fun_decl) in 
   match fun_decl.body with
   | Some body -> (
     match body.node with
     | Block stmtordecs -> (
+      let global_scope_loc = Location.dummy_code_pos in
       let%bind global_scope = read global_scope_loc in 
       let fun_scope = Symbol_table.begin_block global_scope in 
       repository := Repository.add (Location.show_code_pos body.loc) fun_scope !repository;
@@ -64,7 +64,7 @@ let add_from_fundecl fun_decl =
     )
   | None -> Ok()
 
-let add_from_topdecl topdecl = 
+let add_global_definition topdecl = 
   let open Ast in
   let global_scope_loc = Location.dummy_code_pos in 
   match topdecl.node with 
@@ -73,7 +73,7 @@ let add_from_topdecl topdecl =
   | Ast.Vardec (typ, id, false) -> 
     update global_scope_loc (Symbol_builder.build_var id typ)
   | Ast.Fundecl fun_decl -> 
-    add_from_fundecl fun_decl
+    update global_scope_loc (Symbol_builder.build_fun fun_decl)
 
 let add_rts_functions () = 
   let open Ast in
@@ -96,11 +96,23 @@ let add_from_program program = match program with
 | Ast.Prog topdecls -> 
   repository := Repository.add (Location.show_code_pos Location.dummy_code_pos) (Symbol_table.empty_table) !repository;
   let%bind _ = add_rts_functions () in 
-  List.fold_left (fun res topdecl -> 
+  let%bind _ = List.fold_left (fun res topdecl -> 
     let%bind _ = res in 
-    add_from_topdecl topdecl
+    add_global_definition topdecl
+  ) (Ok()) topdecls in 
+  List.fold_left (fun res topdecl -> 
+    let open Ast in
+    let%bind _ = res in 
+    match topdecl.node with
+    | Ast.Fundecl fun_decl -> add_from_fundecl fun_decl
+    | _ -> res
   ) (Ok()) topdecls
 
-let create program = match Repository.is_empty !repository with 
-| false -> Ok()
-| true -> add_from_program program
+let create program = 
+  match (Repository.is_empty !repository || !actual_program <> Some(program)) with 
+  | false -> 
+    Ok()
+  | true -> 
+    repository := Repository.empty;
+    actual_program := Some(program);
+    add_from_program program
