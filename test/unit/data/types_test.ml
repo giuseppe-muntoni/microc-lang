@@ -13,32 +13,32 @@ let primitve_datatype_conversion_test _ =
 let pointer_conversion_test_1 _ = 
   let open Types in 
   let ptr = Types.convert_to_data_type (Ast.TypP(Ast.TypP(Ast.TypI))) in
-  assert_equal (CompoundType(Pointer{primitive_type = Number IntType; ptr_indirection = 2})) ptr
+  assert_equal (CompoundType(Pointer{pointed_type = Number IntType; indirection = 2})) ptr
 
 let pointer_conversion_test_2 _ = 
   let open Types in 
   let ptr = Types.convert_to_data_type (Ast.TypP(Ast.TypI)) in
-  assert_equal (CompoundType(Pointer{primitive_type = Number IntType; ptr_indirection = 1})) ptr
+  assert_equal (CompoundType(Pointer{pointed_type = Number IntType; indirection = 1})) ptr
 
 let array_conversion_test_1 _ = 
   let open Types in
   let arr = Types.convert_to_data_type (Ast.TypA(Ast.TypB, Some 5)) in 
-  assert_equal (CompoundType(Array{primitive_type = BoolType; ptr_indirection = 0; dimensions = 1; sizes = [(1, Some 5)]})) arr
+  assert_equal (CompoundType(Array{elements_type = BoolType; indirection = 0; dimensions = 1; sizes = [(1, Some 5)]})) arr
 
 let array_conversion_test_2 _ = 
   let open Types in
   let arr = Types.convert_to_data_type (Ast.TypA(Ast.TypB, None)) in 
-  assert_equal (CompoundType(Array{primitive_type = BoolType; ptr_indirection = 0; dimensions = 1; sizes = [(1, None)]})) arr
+  assert_equal (CompoundType(Array{elements_type = BoolType; indirection = 0; dimensions = 1; sizes = [(1, None)]})) arr
 
 let array_conversion_test_3 _ = 
   let open Types in
   let arr = Types.convert_to_data_type (Ast.TypA(Ast.TypA(Ast.TypC, Some 5), Some 7)) in 
-  assert_equal (CompoundType(Array{primitive_type = CharType; ptr_indirection = 0; dimensions = 2; sizes = [(1, Some 7); (2, Some 5)]})) arr
+  assert_equal (CompoundType(Array{elements_type = CharType; indirection = 0; dimensions = 2; sizes = [(1, Some 7); (2, Some 5)]})) arr
 
 let array_conversion_test_4 _ = 
   let open Types in
   let arr = Types.convert_to_data_type (Ast.TypA(Ast.TypA(Ast.TypP(Ast.TypC), Some 5), Some 7)) in 
-  assert_equal (CompoundType(Array{primitive_type = CharType; ptr_indirection = 1; dimensions = 2; sizes = [(1, Some 7); (2, Some 5)]})) arr
+  assert_equal (CompoundType(Array{elements_type = CharType; indirection = 1; dimensions = 2; sizes = [(1, Some 7); (2, Some 5)]})) arr
 
 let tests = "Tests for module Types" >::: [
   "Primitive datatype conversion" >:: primitve_datatype_conversion_test;

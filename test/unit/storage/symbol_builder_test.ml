@@ -16,8 +16,8 @@ let build_fun_test _ =
   } in
   let foo_symbol = Symbol.Fun(
     Number(FloatType), 
-    [CompoundType(Pointer{primitive_type = Number(FloatType); ptr_indirection = 3});
-     CompoundType(Array{primitive_type = BoolType; ptr_indirection = 2; dimensions = 1; sizes = [1, None]})
+    [(CompoundType(Pointer{pointed_type = Number(FloatType); indirection = 3}), "x");
+     (CompoundType(Array{elements_type = BoolType; indirection = 2; dimensions = 1; sizes = [1, None]}), "y")
     ]
   ) in
   let updated_scope = Symbol_builder.build_fun foo_ast global_scope in
@@ -33,8 +33,8 @@ let build_var_test _ =
   let updated_scope = Symbol_builder.build_var "x" (Ast.TypA(Ast.TypC, Some 32)) global_scope in
   let expected = Symbol.Var(
       CompoundType(Array {
-        primitive_type = CharType;
-        ptr_indirection = 0;
+        elements_type = CharType;
+        indirection = 0;
         dimensions = 1;
         sizes = [(1, Some 32)]
       }), false) in 
@@ -50,8 +50,8 @@ let build_extern_var _ =
   let updated_scope = Symbol_builder.build_extern_var "x" (Ast.TypA(Ast.TypC, Some 32)) global_scope in
   let expected = Symbol.Var(
       CompoundType(Array {
-        primitive_type = CharType;
-        ptr_indirection = 0;
+        elements_type = CharType;
+        indirection = 0;
         dimensions = 1;
         sizes = [(1, Some 32)]
       }), true) in 
@@ -68,8 +68,8 @@ let build_vars_test _ =
     (Ast.TypP(Ast.TypP(Ast.TypP(Ast.TypF))), "x");
     (Ast.TypA(Ast.TypP(Ast.TypP(Ast.TypB)), None), "y")
   ] global_scope in 
-  let expected_x = (Symbol.Var((CompoundType(Pointer{primitive_type = Number(FloatType); ptr_indirection = 3})), false)) in 
-  let expected_y = (Symbol.Var(CompoundType(Array{primitive_type = BoolType; ptr_indirection = 2; dimensions = 1; sizes = [1, None]}), false)) in
+  let expected_x = (Symbol.Var((CompoundType(Pointer{pointed_type = Number(FloatType); indirection = 3})), false)) in 
+  let expected_y = (Symbol.Var(CompoundType(Array{elements_type = BoolType; indirection = 2; dimensions = 1; sizes = [1, None]}), false)) in
   match updated_scope with
   | Error(err) ->
     assert_bool (String.concat "" ["Expected a success but this error was returned: "; Errors.show err]) false 
@@ -87,7 +87,7 @@ let duplicate_entry_error_test _ =
   match updated_scope with
   | Error(err) -> 
     let expected = Errors.SymbolErr(Errors.DuplicateEntry(
-      "x", (Symbol.Var(CompoundType(Array{primitive_type = BoolType; ptr_indirection = 2; dimensions = 1; sizes = [1, None]}), false)))
+      "x", (Symbol.Var(CompoundType(Array{elements_type = BoolType; indirection = 2; dimensions = 1; sizes = [1, None]}), false)))
     ) in 
     assert_equal ~printer: Errors.show expected err
   | Ok(_) ->

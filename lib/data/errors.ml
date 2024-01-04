@@ -3,6 +3,7 @@ type t =
   | SymbolTablesRepositoryErr of repository_err 
   | TypeCheckerErr of type_checker_err 
   | DeadcodeAnalyzerErr of deadcode_err
+  | CodegenErr of code_gen_err
   [@@deriving show]
 
 and symbol_err = 
@@ -36,5 +37,7 @@ and type_checker_err =
   [@@deriving show]
 
 and deadcode_err = Prova
+
+and code_gen_err = Prova
 
 let to_string _error = ""

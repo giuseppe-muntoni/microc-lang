@@ -11,16 +11,16 @@ type primitive_type =
 [@@deriving show]
 
 type array_info = {
-    primitive_type  : primitive_type;
-    ptr_indirection : int;
+    elements_type   : primitive_type;
+    indirection     : int;
     dimensions      : int;
     sizes           : (int * int option) list;
 }
 [@@deriving show]
 
 type ptr_info = {
-    primitive_type  : primitive_type;
-    ptr_indirection : int;
+    pointed_type    : primitive_type;
+    indirection     : int;
 }
 [@@deriving show]
 
@@ -51,8 +51,8 @@ let rec get_ptr_info (typ,indirection) = match typ with
     match convert_to_primitive_type typ with
     | Some primitive_type -> 
       { 
-        primitive_type = primitive_type;
-        ptr_indirection =  indirection;
+        pointed_type = primitive_type;
+        indirection =  indirection;
       }
     | None -> failwith "Unexpected type conversion error"
 
@@ -62,16 +62,16 @@ let rec make_array_type typ dimensions sizes = match typ with
   | Ast.TypP typ -> 
     let ptr_info = get_ptr_info(typ, 1) in
     Array {
-      primitive_type = ptr_info.primitive_type;
-      ptr_indirection = ptr_info.ptr_indirection;
+      elements_type = ptr_info.pointed_type;
+      indirection = ptr_info.indirection;
       dimensions = dimensions;
       sizes = List.rev sizes;
     }
   | typ -> match convert_to_primitive_type typ with
     | Some primitive_type -> 
       Array {
-        primitive_type = primitive_type;
-        ptr_indirection = 0;
+        elements_type = primitive_type;
+        indirection = 0;
         dimensions = dimensions;
         sizes = List.rev sizes;
       }

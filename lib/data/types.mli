@@ -11,16 +11,16 @@ type primitive_type =
 [@@deriving show]
 
 type array_info = {
-    primitive_type  : primitive_type;
-    ptr_indirection : int;
+    elements_type   : primitive_type;
+    indirection     : int;
     dimensions      : int;
     sizes           : (int * int option) list;
 }
 [@@deriving show]
 
 type ptr_info = {
-    primitive_type  : primitive_type;
-    ptr_indirection : int;
+    pointed_type    : primitive_type;
+    indirection     : int;
 }
 [@@deriving show]
 

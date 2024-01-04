@@ -6,14 +6,20 @@ let expected_symbols_test_ex6 =
   let open Types in 
   [
     [
-      ("fac", Symbol.Fun(VoidType, [PrimitiveType(Number IntType); CompoundType(Pointer{primitive_type = Number(IntType); ptr_indirection = 1})]));
+      ("fac", Symbol.Fun(
+        VoidType, 
+        [
+          (PrimitiveType(Number IntType), "n");
+          (CompoundType(Pointer{pointed_type = Number(IntType); indirection = 1}), "res")
+        ]
+      ));
       ("getint", Symbol.Fun(Number IntType, []));
       ("main", Symbol.Fun(VoidType, []));
-      ("print", Symbol.Fun(VoidType, [PrimitiveType(Number IntType)]))
+      ("print", Symbol.Fun(VoidType, [(PrimitiveType(Number IntType), "x")]))
     ];
     [
       ("n", Symbol.Var(PrimitiveType(Number IntType), false));
-      ("res", Symbol.Var(CompoundType(Pointer{primitive_type = Number(IntType); ptr_indirection = 1}), false))
+      ("res", Symbol.Var(CompoundType(Pointer{pointed_type = Number(IntType); indirection = 1}), false))
     ];
     [
       ("tmp", Symbol.Var(PrimitiveType(Number IntType), false))

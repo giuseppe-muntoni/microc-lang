@@ -17,12 +17,12 @@ and check_types_accindex current_scope (access, expr) location =
   let%bind idx_type = check_types_expr current_scope expr in
   match (access_type, idx_type) with 
   | (CompoundType(Array arr_info), PrimitiveType Number(IntType)) -> 
-    if arr_info.ptr_indirection = 0 then
-      return (PrimitiveType arr_info.primitive_type)
+    if arr_info.indirection = 0 then
+      return (PrimitiveType arr_info.elements_type)
     else 
       return (CompoundType(Pointer{
-        primitive_type = arr_info.primitive_type;
-        ptr_indirection = arr_info.ptr_indirection
+        pointed_type = arr_info.elements_type;
+        indirection = arr_info.indirection
       }))
   | (_, PrimitiveType Number(IntType)) ->
     Error(location, TypeCheckerErr AccIdxToNotArr)
@@ -35,10 +35,10 @@ and check_types_accderef current_scope expr location =
   let open Types in
   let%bind expr_typ = check_types_expr current_scope expr in 
   match expr_typ with
-  | CompoundType(Pointer{ primitive_type; ptr_indirection = 1 }) -> 
-    return (PrimitiveType primitive_type)
-  | CompoundType(Pointer{primitive_type; ptr_indirection = n}) -> 
-    return (CompoundType(Pointer{primitive_type: primitive_type; ptr_indirection = n-1}))
+  | CompoundType(Pointer{ pointed_type; indirection = 1 }) -> 
+    return (PrimitiveType pointed_type)
+  | CompoundType(Pointer{pointed_type; indirection = n}) -> 
+    return (CompoundType(Pointer{pointed_type: primitive_type; indirection = n-1}))
   | _ -> 
     Error(location, TypeCheckerErr DerefNotPtr)
 
@@ -71,8 +71,8 @@ and check_types_expr current_scope expr =
     return (PrimitiveType BoolType)
   | Ast.SLiteral(s) -> 
     return (CompoundType(Array {
-      primitive_type = CharType;
-      ptr_indirection = 0;
+      elements_type = CharType;
+      indirection = 0;
       dimensions = 1; 
       sizes = [(1, Some((String.length s) + 1))]
     }))
@@ -105,13 +105,13 @@ and check_types_addr current_scope access location =
   match%bind (check_types_access current_scope access) with
   | CompoundType(Pointer ptr_info) -> 
     return (CompoundType(Pointer {
-      primitive_type = ptr_info.primitive_type;
-      ptr_indirection = ptr_info.ptr_indirection + 1
+      pointed_type = ptr_info.pointed_type;
+      indirection = ptr_info.indirection + 1
     }))
   | PrimitiveType(t) -> 
     return (CompoundType(Pointer {
-      primitive_type = t;
-      ptr_indirection = 1
+      pointed_type = t;
+      indirection = 1
     }))
   | CompoundType(Array(_)) ->
     Error(location, TypeCheckerErr ArrayPtrNotIntercheangeable)
@@ -161,8 +161,8 @@ and check_match_actual_formal formal actual =
   else
     match (actual, formal) with 
     | (CompoundType(Array(actual_info)), CompoundType(Array formal_info)) -> 
-      if (actual_info.primitive_type = formal_info.primitive_type 
-        && actual_info.ptr_indirection = formal_info.ptr_indirection
+      if (actual_info.elements_type = formal_info.elements_type 
+        && actual_info.indirection = formal_info.indirection
         && actual_info.dimensions = formal_info.dimensions) then 
           match (snd (List.hd actual_info.sizes), snd (List.hd formal_info.sizes)) with
           | (Some _, None) -> true 
@@ -185,6 +185,7 @@ and check_types_call current_scope (fname, actual_params) location =
     let symbol = Symbol_table.lookup fname current_scope in
     match symbol with
     | Symbol.Fun(return_type, params) -> 
+      let params = List.map fst params in 
       if (List.equal (check_match_actual_formal) params actual_types) then
         return(PrimitiveType return_type)
       else 

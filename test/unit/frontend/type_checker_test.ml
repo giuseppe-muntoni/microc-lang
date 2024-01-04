@@ -60,19 +60,19 @@ let failing_tests =
     "ill-typed program: fail-assign3"   >:: (ill_typed_test   "fail-assign3"  (TypeCheckerErr(AssignTypeMismatch(PrimitiveType(Number IntType), PrimitiveType(VoidType)))));
     "ill-typed program: fail-assign4"   >:: (ill_typed_test   "fail-assign4"  (TypeCheckerErr(AssignTypeMismatch(
       CompoundType(Pointer { 
-        primitive_type = Number IntType;
-        ptr_indirection = 1 
+        pointed_type = Number IntType;
+        indirection = 1 
       }),
       CompoundType(Array {
-        primitive_type = Number IntType;
-        ptr_indirection = 0;
+        elements_type = Number IntType;
+        indirection = 0;
         dimensions = 1; 
         sizes = [(1, (Some 10))] 
       })))));
     "ill-typed program: fail-assign5"   >:: (ill_typed_test   "fail-assign5"  (TypeCheckerErr(AssignTypeMismatch(
       CompoundType(Array {
-        primitive_type = Number IntType;
-        ptr_indirection = 0;
+        elements_type = Number IntType;
+        indirection = 0;
         dimensions = 1;
         sizes = [(1, Some 5)]
       }),
@@ -80,19 +80,19 @@ let failing_tests =
     ));
     "ill-typed program: fail-assign6"   >:: (ill_typed_test   "fail-assign6"  (TypeCheckerErr(ArrNotAssignable(
       CompoundType(Array {
-        primitive_type = Number IntType;
-        ptr_indirection = 0;
+        elements_type = Number IntType;
+        indirection = 0;
         dimensions = 1;
         sizes = [(1, Some 5)]
       })))));
     "ill-typed program: fail-assign7"   >:: (ill_typed_test   "fail-assign7"  (TypeCheckerErr(AssignTypeMismatch(
       CompoundType(Pointer { 
-        primitive_type = Number IntType;
-        ptr_indirection = 1 
+        pointed_type = Number IntType;
+        indirection = 1 
       }),
       CompoundType(Array {
-        primitive_type = Number IntType;
-        ptr_indirection = 0;
+        elements_type = Number IntType;
+        indirection = 0;
         dimensions = 1; 
         sizes = [(1, (Some 5))] 
       })))));
@@ -148,11 +148,11 @@ let failing_tests =
     "ill-typed program: fail-func12"     >:: (ill_typed_test   "fail-func12"    (TypeCheckerErr(AccIdxToNotArr)));
     "ill-typed program: fail-func13"     >:: (ill_typed_test   "fail-func13"    (TypeCheckerErr(WrongActualParamsType("foo",
     [
-      CompoundType(Pointer{primitive_type = Number IntType; ptr_indirection = 1});
+      CompoundType(Pointer{pointed_type = Number IntType; indirection = 1});
       PrimitiveType(Number IntType)
     ],
     [
-      CompoundType(Array{primitive_type = Number IntType; ptr_indirection = 0; dimensions = 1; sizes = [(1, Some 10)]});
+      CompoundType(Array{elements_type = Number IntType; indirection = 0; dimensions = 1; sizes = [(1, Some 10)]});
       PrimitiveType(Number IntType)
     ]))));
     "ill-typed program: fail-global1"     >:: (ill_symbol_test  "fail-global1"    (SymbolErr(VoidVarDecl("a"))));
@@ -167,8 +167,8 @@ let failing_tests =
     "ill-typed program: fail-while2"      >:: (ill_typed_test   "fail-while2"     (TypeCheckerErr(NotDeclaredFun("foo"))));
     "ill-typed program: fail-string2"     >:: (ill_typed_test   "fail-string2"    (TypeCheckerErr(ArrNotAssignable(
       CompoundType(Array {
-        primitive_type = CharType;
-        ptr_indirection = 0;
+        elements_type = CharType;
+        indirection = 0;
         dimensions = 1;
         sizes = [(1, Some 8)]
       })))));

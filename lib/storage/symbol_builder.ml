@@ -17,8 +17,7 @@ let build_fun fun_decl scope =
   | Types.CompoundType _ -> 
     failwith "Unexpected error: a function cannot return syntactically a compound data type"
   | Types.PrimitiveType ret_typ ->
-    let formals = List.map fst fun_decl.formals
-    |> List.map (fun formal -> Types.convert_to_data_type formal) in
+    let formals = List.map (fun (typ, id) -> (Types.convert_to_data_type typ, id)) fun_decl.formals in
     let symbol = Fun(ret_typ, formals) in 
     try
       Ok(Symbol_table.add_entry fun_decl.fname symbol scope)
