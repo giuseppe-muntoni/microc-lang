@@ -38,6 +38,6 @@ and type_checker_err =
 
 and deadcode_err = Prova
 
-and code_gen_err = Prova
+and code_gen_err = ProvaErr
 
 let to_string _error = ""
