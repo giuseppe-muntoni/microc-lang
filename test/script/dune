@@ -25,6 +25,7 @@
 (executable
   (name codegen_test)
   (public_name codegen_test)
+  (modes byte byte_complete exe)
   (libraries microc llvm)
   (modules codegen_test)
   (preprocess

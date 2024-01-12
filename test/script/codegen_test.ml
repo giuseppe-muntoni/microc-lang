@@ -46,9 +46,10 @@ let process_source filename =
       lexbuf |>
       Parsing.parse Scanner.next_token |>
       Semantic_analysis.check_semantic |>
-      Codegen.to_llvm_module
+      Codegen.to_llvm_module |>
+      Optimizer.optimize_module
     in 
-    Llvm_analysis.assert_valid_module llmodule; 
+    Llvm_analysis.assert_valid_module llmodule;
     Printf.printf "; Code generation succeded!\n\n%s\n" (Llvm.string_of_llmodule llmodule)  
   with 
   | Scanner.Lexing_error (pos, msg)
