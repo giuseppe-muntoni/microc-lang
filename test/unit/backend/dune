@@ -1,0 +1,3 @@
+(test
+ (name codegen_test)
+ (libraries microc ounit2 test_utils))
