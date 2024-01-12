@@ -20,11 +20,11 @@ int getint()     // it inputs an integer from standard input
 ## MicroC Tasks
 - [x] **Parsing**: Implementation of the scanner using Ocamllex and the lr(1) parser using Menhir
 - [x] **Semantic analysis**: implementation of a static analysis for check that a given program obeys the scoping rule and the type system of the language.
-- [ ] **Code generation**: usage of the LLVM toolchain to compile a MicroC program to low level code (LLVM bitcode) and to perform some simple optimizations.
+- [x] **Code generation**: usage of the LLVM toolchain to compile a MicroC program to low level code (LLVM bitcode) and to perform some simple optimizations.
 
 **Extensions**:
 - [ ] pre/post increment/decrement operators, i.e., `++` and `--`, and  abbreviation for assignment operators, i.e., `+=`, `-=`, `*=`, `/=` and `%=`;
 - [ ] pointers, arrays & multi-dimensional arrays as in C;
 - [x] floating point arithmetic and strings as in C, i.e. null-terminated arrays of characters;
 - [ ] a new semantic analysis pass to detect deadcode;
-- [ ] seperate compilation.
+- [x] seperate compilation.
