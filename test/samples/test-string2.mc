@@ -1,7 +1,7 @@
 void main() {
-    f("pippo", 5);
+    f("pippo", "pluto");
 }
 
-void f(char x[], int y) {
+void f(char x[], char y[]) {
     return;
 }
