@@ -1,4 +1,4 @@
-open Errors
+open Semantic_errors
 open Base.Result.Let_syntax
 
 module Repository = Map.Make(String)

@@ -7,12 +7,12 @@ let well_typed_test sample _ =
   let res = Symbol_tables_repository.create program in 
   match res with 
   | Error(err) -> 
-    assert_bool (Errors.show (snd err)) false 
+    assert_bool (Semantic_errors.show (snd err)) false 
   | Ok() -> 
     let res = Type_checker.check_types program in 
     match res with 
     | Error(err) -> 
-      assert_bool (Errors.show (snd err)) false 
+      assert_bool (Semantic_errors.show (snd err)) false 
     | Ok() -> 
       ()
 
@@ -21,23 +21,23 @@ let ill_typed_test sample expected_err _ =
   let res = Symbol_tables_repository.create program in 
   match res with 
   | Error(err) -> 
-    assert_bool (Errors.show (snd err)) false 
+    assert_bool (Semantic_errors.show (snd err)) false 
   | Ok() -> 
     let res = Type_checker.check_types program in 
     match res with 
     | Error(err) -> 
-      assert_equal ~printer: (Errors.show) expected_err (snd err) 
+      assert_equal ~printer: (Semantic_errors.show) expected_err (snd err) 
     | Ok() -> 
-      assert_bool (String.concat " " ["The type checker must return"; Errors.show expected_err; "but instead returns Ok"]) false
+      assert_bool (String.concat " " ["The type checker must return"; Semantic_errors.show expected_err; "but instead returns Ok"]) false
 
 let ill_symbol_test sample expected_err _ = 
   let program = Utils.create_ast sample in
   let res = Symbol_tables_repository.create program in 
   match res with 
   | Error(err) -> 
-    assert_equal ~printer: (Errors.show) expected_err (snd err) 
+    assert_equal ~printer: (Semantic_errors.show) expected_err (snd err) 
   | Ok() -> 
-    assert_bool (String.concat " " ["The symbol builder must return"; Errors.show expected_err; "but instead returns Ok"]) false
+    assert_bool (String.concat " " ["The symbol builder must return"; Semantic_errors.show expected_err; "but instead returns Ok"]) false
 
 let successful_tests = 
   let files = Array.to_list (Sys.readdir "../../../../../test/samples") in 
@@ -49,7 +49,7 @@ let successful_tests =
   "Successful tests for module Type_checker" >::: tests
 
 let failing_tests = 
-  let open Errors in 
+  let open Semantic_errors in 
   let open Types in 
   "Failing tests for module Type_checker" >::: [
     "ill-typed program: fail-array1"    >:: (ill_symbol_test  "fail-array1"   (SymbolErr(MultiDimArray "a")));

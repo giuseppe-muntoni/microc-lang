@@ -1,4 +1,4 @@
-open Errors
+open Semantic_errors
 open Base.Result.Let_syntax
 
 let rec check_types_access current_scope access =

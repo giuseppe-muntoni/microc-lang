@@ -1,1 +1,1 @@
-val check_types : Ast.program -> (unit, (Location.code_pos * Errors.t)) result
+val check_types : Ast.program -> (unit, (Location.code_pos * Semantic_errors.t)) result

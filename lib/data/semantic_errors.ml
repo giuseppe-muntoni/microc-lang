@@ -2,8 +2,6 @@ type t =
   | SymbolErr of symbol_err
   | SymbolTablesRepositoryErr of repository_err 
   | TypeCheckerErr of type_checker_err 
-  | DeadcodeAnalyzerErr of deadcode_err
-  | CodegenErr of code_gen_err
   [@@deriving show]
 
 and symbol_err = 
@@ -35,9 +33,5 @@ and type_checker_err =
   | IdxNotInt
   | AccIdxToNotArr
   [@@deriving show]
-
-and deadcode_err = Prova
-
-and code_gen_err = ProvaErr
 
 let to_string _error = ""

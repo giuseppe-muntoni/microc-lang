@@ -1,5 +1,5 @@
 open Base.Result.Let_syntax
-open Errors
+open Semantic_errors
 
 let is_multidim_array data_type = 
   let open Types in 

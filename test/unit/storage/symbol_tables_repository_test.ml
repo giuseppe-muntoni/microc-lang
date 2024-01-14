@@ -45,7 +45,7 @@ let create_test _ =
   let res = Symbol_tables_repository.create program in 
   match res with 
   | Error(err) ->
-    assert_bool (Errors.show (snd err)) false 
+    assert_bool (Semantic_errors.show (snd err)) false 
   | Ok() -> 
     let actual_symbols = List.map (Symbol_table.to_list) (Symbol_tables_repository.read_all ()) in
     assert_equal ~cmp: (fun l1 l2 -> List.equal (=) l1 l2) ~printer: to_string expected_symbols_test_ex6 actual_symbols

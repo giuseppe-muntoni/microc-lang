@@ -23,7 +23,7 @@ let build_fun_test _ =
   let updated_scope = Symbol_builder.build_fun foo_ast global_scope in
   match updated_scope with 
   | Error(err) -> 
-    assert_bool (String.concat "" ["Expected a success but this error was returned: "; Errors.show err]) false 
+    assert_bool (String.concat "" ["Expected a success but this error was returned: "; Semantic_errors.show err]) false 
   | Ok(local_scope) ->
     assert_equal foo_symbol (Symbol_table.lookup "foo" local_scope)
 
@@ -40,7 +40,7 @@ let build_var_test _ =
       }), false) in 
   match updated_scope with
   | Error(err) ->
-    assert_bool (String.concat "" ["Expected a success but this error was returned: "; Errors.show err]) false 
+    assert_bool (String.concat "" ["Expected a success but this error was returned: "; Semantic_errors.show err]) false 
   | Ok(updated_scope) -> 
       assert_equal expected (Symbol_table.lookup "x" updated_scope)
 
@@ -57,7 +57,7 @@ let build_extern_var _ =
       }), true) in 
   match updated_scope with
   | Error(err) ->
-    assert_bool (String.concat "" ["Expected a success but this error was returned: "; Errors.show err]) false 
+    assert_bool (String.concat "" ["Expected a success but this error was returned: "; Semantic_errors.show err]) false 
   | Ok(updated_scope) -> 
       assert_equal expected (Symbol_table.lookup "x" updated_scope)
   
@@ -72,7 +72,7 @@ let build_vars_test _ =
   let expected_y = (Symbol.Var(CompoundType(Array{elements_type = BoolType; indirection = 2; dimensions = 1; sizes = [1, None]}), false)) in
   match updated_scope with
   | Error(err) ->
-    assert_bool (String.concat "" ["Expected a success but this error was returned: "; Errors.show err]) false 
+    assert_bool (String.concat "" ["Expected a success but this error was returned: "; Semantic_errors.show err]) false 
   | Ok(updated_scope) -> 
     assert_equal expected_x (Symbol_table.lookup "x" updated_scope);
     assert_equal expected_y (Symbol_table.lookup "y" updated_scope)
@@ -86,10 +86,10 @@ let duplicate_entry_error_test _ =
   ] global_scope in 
   match updated_scope with
   | Error(err) -> 
-    let expected = Errors.SymbolErr(Errors.DuplicateEntry(
+    let expected = Semantic_errors.SymbolErr(Semantic_errors.DuplicateEntry(
       "x", (Symbol.Var(CompoundType(Array{elements_type = BoolType; indirection = 2; dimensions = 1; sizes = [1, None]}), false)))
     ) in 
-    assert_equal ~printer: Errors.show expected err
+    assert_equal ~printer: Semantic_errors.show expected err
   | Ok(_) ->
     assert_bool "Expected a duplicate entry error but ok was returned" false 
 
@@ -99,8 +99,8 @@ let multidim_array_error_test _ =
   let updated_scope = Symbol_builder.build_var "x" (TypA(TypA(TypI, None), None)) global_scope in 
   match updated_scope with 
   | Error(err) ->
-    let expected = Errors.SymbolErr(Errors.MultiDimArray "x") in
-    assert_equal ~printer: Errors.show expected err
+    let expected = Semantic_errors.SymbolErr(Semantic_errors.MultiDimArray "x") in
+    assert_equal ~printer: Semantic_errors.show expected err
   | Ok(_) -> 
     assert_bool "Expected a duplicate entry error but ok was returned" false 
 
@@ -109,8 +109,8 @@ let void_var_error_test _ =
   let updated_scope = Symbol_builder.build_var "x" Ast.TypV global_scope in 
   match updated_scope with 
   | Error(err) ->
-    let expected = Errors.SymbolErr(Errors.VoidVarDecl "x") in
-    assert_equal ~printer: Errors.show expected err
+    let expected = Semantic_errors.SymbolErr(Semantic_errors.VoidVarDecl "x") in
+    assert_equal ~printer: Semantic_errors.show expected err
   | Ok(_) -> 
     assert_bool "Expected a duplicate entry error but ok was returned" false 
 
