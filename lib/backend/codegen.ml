@@ -20,11 +20,12 @@ let adapt_source_primitive_type_to_lltype typ llvm_context =
 
 let rec adapt_source_pointer_to_lltype info llvm_context = 
   let open Types in 
+  let _ = info.pointed_type (* Just to disambiguate *) in 
   match info.indirection with 
   | 1 -> Llvm.pointer_type (adapt_source_primitive_type_to_lltype info.pointed_type llvm_context)
   | n -> Llvm.pointer_type (adapt_source_pointer_to_lltype ({pointed_type = info.pointed_type; indirection = n - 1}) llvm_context)
 
-let rec adapt_source_array_to_lltype info llvm_context = 
+let adapt_source_array_to_lltype info llvm_context = 
   let open Types in 
   let array_size = (
     match (List.hd info.sizes) with 
@@ -69,7 +70,6 @@ let adapt_source_param_to_lltype typ llvm_context =
 
 let adapt_source_symbol_to_lltype symbol llvm_context = 
   print_endline "Adapting source symbol to lltype...";
-  let open Types in 
   match symbol with 
   | Symbol.Var(typ, _) ->
     adapt_source_type_to_lltype typ llvm_context
@@ -122,7 +122,7 @@ and generate_expr_code expr llvm_context builder llvalues_table symbol_table =
   let open Ast in 
   match expr.node with 
   | Ast.Access(access) -> 
-    let (address, value) = generate_access_code access llvm_context builder llvalues_table symbol_table in 
+    let (_, value) = generate_access_code access llvm_context builder llvalues_table symbol_table in 
     value
   | Ast.Assign(access, expr) -> 
     let (address, _) = generate_access_code access llvm_context builder llvalues_table symbol_table in 
@@ -298,7 +298,7 @@ and generate_stmtordecs_code stmtordecs llvm_context bblock builder llvalues_tab
   ) (llvalues_table, bblock, builder) stmtordecs in 
   (bblock, builder)
 
-let generate_fundecl_code fundecl global_symbol_table global_llvalues_table llvm_module llvm_context = 
+let generate_fundecl_code fundecl global_symbol_table global_llvalues_table llvm_context = 
   print_endline "Generating function declaration..." ;
   let open Ast in
   match fundecl.body with 
@@ -317,21 +317,22 @@ let generate_fundecl_code fundecl global_symbol_table global_llvalues_table llvm
         let fun_llvalues_table = Symbol_table.begin_block global_llvalues_table in 
         let fun_basic_block = Llvm.entry_block fun_llvalue in 
         let fun_bb_builder = Llvm.builder_at_end llvm_context fun_basic_block in
-        let fun_llvalues_table = List.fold_left (fun fun_llvalues_table (typ, id) -> (
+        let (_, fun_llvalues_table) = List.fold_left (fun (i, fun_llvalues_table) (typ, id) -> (
           let lltype = adapt_source_param_to_lltype typ llvm_context in 
-          let llvalue = Llvm.build_alloca lltype id fun_bb_builder in 
-          Symbol_table.add_entry id llvalue fun_llvalues_table
-        )) fun_llvalues_table formals in 
+          let param_addr = Llvm.build_alloca lltype id fun_bb_builder in 
+          let _ = Llvm.build_store (Llvm.param fun_llvalue i) param_addr fun_bb_builder in
+          (i + 1, Symbol_table.add_entry id param_addr fun_llvalues_table)
+        )) (0, fun_llvalues_table) formals in  
         match ret_typ with 
-        | VoidType -> (
+        | Types.VoidType -> (
           let return_basic_block = Llvm.append_block llvm_context "return" fun_llvalue in 
           let return_bb_builder = Llvm.builder_at_end llvm_context return_basic_block in 
           let _ = Llvm.build_ret_void return_bb_builder in 
-          let (bblock, builder) = generate_stmtordecs_code stmtordecs llvm_context fun_basic_block fun_bb_builder fun_llvalues_table fun_scope fun_llvalue return_basic_block in 
+          let (_, builder) = generate_stmtordecs_code stmtordecs llvm_context fun_basic_block fun_bb_builder fun_llvalues_table fun_scope fun_llvalue return_basic_block in 
           let _ = Llvm.build_br return_basic_block builder in 
           ())
         | _ -> (
-          let ret_val_typ = adapt_source_type_to_lltype (PrimitiveType ret_typ) llvm_context in
+          let ret_val_typ = adapt_source_type_to_lltype (Types.PrimitiveType ret_typ) llvm_context in
           let ret_val_addr = Llvm.build_alloca ret_val_typ "ret_val_addr" fun_bb_builder in 
           let fun_llvalues_table = Symbol_table.add_entry "ret" ret_val_addr fun_llvalues_table in 
           let return_basic_block = Llvm.append_block llvm_context "return" fun_llvalue in 
@@ -344,7 +345,6 @@ let generate_fundecl_code fundecl global_symbol_table global_llvalues_table llvm
             let _ = Llvm.build_br return_basic_block builder in 
             ()
           else
-            let _ = Llvm.build_br return_basic_block builder in 
             ()))
     | _ -> 
       failwith "Unexpected error"
@@ -392,7 +392,7 @@ let generate_program_code program llvm_module llvm_context =
       | Ast.Vardec _ -> 
         ()
       | Ast.Fundecl fundecl -> 
-        generate_fundecl_code fundecl global_symbol_table global_llvalues_table llvm_module llvm_context
+        generate_fundecl_code fundecl global_symbol_table global_llvalues_table llvm_context
     )) topdecls
 
 let to_llvm_module program =
