@@ -30,7 +30,7 @@ struct
       let (is_else_terminator, else_deadcode_positions) = detect_in_stmt else_stmt in 
       (is_then_terminator && is_else_terminator, else_deadcode_positions @ then_deadcode_positions)
     | Ast.While(_, body) -> 
-      detect_in_stmt body
+      (false, snd(detect_in_stmt body))
     | Ast.Block stmtordecs -> 
       let (is_terminator, deadcode_positions) = List.fold_left (fun (terminator_found, deadcode_positions) stmtordec -> (
         match terminator_found with
@@ -73,7 +73,7 @@ module Unused_vars_detector : sig
 end
 = 
 struct
-  let detect program = []
+  let detect _program = []
 end 
 
 let detect_deadcode ast = 

@@ -6,4 +6,4 @@
 (test
  (name deadcode_analyzer_test)
  (modules deadcode_analyzer_test)
- (libraries microc ounit2))
+ (libraries microc ounit2 test_utils))
