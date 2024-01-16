@@ -26,5 +26,5 @@ int getint()     // it inputs an integer from standard input
 - [ ] pre/post increment/decrement operators, i.e., `++` and `--`, and  abbreviation for assignment operators, i.e., `+=`, `-=`, `*=`, `/=` and `%=`;
 - [ ] pointers, arrays & multi-dimensional arrays as in C;
 - [x] floating point arithmetic and strings as in C, i.e. null-terminated arrays of characters;
-- [ ] a new semantic analysis pass to detect deadcode;
+- [x] a new semantic analysis pass to detect deadcode;
 - [x] seperate compilation.
