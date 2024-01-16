@@ -81,7 +81,7 @@ let detect_deadcode ast =
   let unused_vars = Unused_vars_detector.detect ast in 
   match (unreachable_code, unused_vars) with 
   | ([], []) -> 
-    ()
+    ast
   | _ -> 
     raise (Deadcode_found {
       unreachable_code;

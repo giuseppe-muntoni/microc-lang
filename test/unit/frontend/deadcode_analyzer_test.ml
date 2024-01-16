@@ -10,7 +10,7 @@ let with_deadcode_test sample stmt_num var_num _ =
     assert_bool (Semantic_errors.show (snd err)) false 
   | Ok() -> 
     try 
-      Deadcode_analyzer.detect_deadcode program;
+      let _ = Deadcode_analyzer.detect_deadcode program in 
       assert_bool "Some deadcode must be detected but nothing is detected" false
     with Deadcode_analyzer.Deadcode_found deadcode_info ->
       let open Deadcode_analyzer in 
@@ -25,7 +25,7 @@ let without_deadcode_test sample _ =
     assert_bool (Semantic_errors.show (snd err)) false 
   | Ok() -> 
     try 
-      Deadcode_analyzer.detect_deadcode program;
+      let _ = Deadcode_analyzer.detect_deadcode program in ()
     with Deadcode_analyzer.Deadcode_found _ ->
       assert_bool "No deadcode but some deadcode is found" false
 

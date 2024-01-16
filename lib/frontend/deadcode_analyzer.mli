@@ -13,4 +13,4 @@ and unused_typ = Param | Local
 
 exception Deadcode_found of deadcode_info 
 
-val detect_deadcode : Ast.program -> unit
+val detect_deadcode : Ast.program -> Ast.program
