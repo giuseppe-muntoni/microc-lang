@@ -6,6 +6,16 @@ module Repository = Map.Make(String)
 let actual_program = ref None;;
 let repository = ref (Repository.empty);;
 
+let check_array_size id symbol location = match symbol with 
+  | Symbol.Var(Types.CompoundType(Types.Array array_info), _) -> 
+    let open Types in 
+    if (snd(List.hd array_info.sizes) = None) then
+      Error(location, SymbolErr(ArrayVarWithoutSize id))
+    else 
+      Ok()
+  | _ -> Ok()
+
+
 let read_all () = 
   let bindings = Repository.bindings !repository in
   List.map snd bindings
@@ -40,13 +50,17 @@ let rec add_from_stmt stmt current_scope_loc = match stmt with
 
 and add_from_stmtordecs stmtordecs current_scope_loc = 
   let open Ast in 
-  List.map (fun stmtordec -> stmtordec.node) stmtordecs 
-  |> List.fold_left (fun res stmtordec -> (
+  List.fold_left (fun res stmtordec -> (
     let%bind _ = res in
-    match stmtordec with
-    | Ast.Dec(typ, id) -> update current_scope_loc (Symbol_builder.build_var id typ)
-    | Ast.Stmt(stmt) -> add_from_stmt stmt current_scope_loc
-  )) (Ok())
+    match stmtordec.node with
+    | Ast.Stmt(stmt) -> 
+      add_from_stmt stmt current_scope_loc
+    | Ast.Dec(typ, id) -> 
+      let%bind _ = update current_scope_loc (Symbol_builder.build_var id typ) in 
+      let%bind current_scope = read current_scope_loc in 
+      let symbol = Symbol_table.lookup id current_scope in 
+      check_array_size id symbol stmtordec.loc
+  )) (Ok()) stmtordecs
 
 let add_from_fundecl fun_decl = 
   let open Ast in 
@@ -69,9 +83,15 @@ let add_global_definition topdecl =
   let global_scope_loc = Location.dummy_code_pos in 
   match topdecl.node with 
   | Ast.Vardec (typ, id, true) -> 
-    update global_scope_loc (Symbol_builder.build_extern_var id typ)
+    let%bind _ = update global_scope_loc (Symbol_builder.build_extern_var id typ) in
+    let%bind global_scope = read global_scope_loc in 
+    let symbol = Symbol_table.lookup id global_scope in 
+    check_array_size id symbol topdecl.loc
   | Ast.Vardec (typ, id, false) -> 
-    update global_scope_loc (Symbol_builder.build_var id typ)
+    let%bind _ = update global_scope_loc (Symbol_builder.build_var id typ) in 
+    let%bind global_scope = read global_scope_loc in 
+    let symbol = Symbol_table.lookup id global_scope in 
+    check_array_size id symbol topdecl.loc
   | Ast.Fundecl fun_decl -> 
     update global_scope_loc (Symbol_builder.build_fun fun_decl)
 
@@ -85,10 +105,22 @@ let add_rts_functions () =
     ];
     body = None
   }) in 
-  update Location.dummy_code_pos (Symbol_builder.build_fun {
+  let%bind _ = update Location.dummy_code_pos (Symbol_builder.build_fun {
     typ = Ast.TypI;
     fname = "getint";
     formals = [];
+    body = None
+  }) in 
+  let%bind _ = update Location.dummy_code_pos (Symbol_builder.build_fun {
+    typ = Ast.TypV;
+    fname = "print_endline";
+    formals = [(Ast.TypA(Ast.TypC, None), "str")];
+    body = None
+  }) in 
+  update Location.dummy_code_pos (Symbol_builder.build_fun {
+    typ = Ast.TypV;
+    fname = "print_float";
+    formals = [(Ast.TypF, "x")];
     body = None
   })
 
