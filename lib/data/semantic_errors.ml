@@ -1,13 +1,15 @@
 type t = 
   | SymbolErr of symbol_err
   | SymbolTablesRepositoryErr of repository_err 
-  | TypeCheckerErr of type_checker_err 
+  | TypeCheckerErr of type_checker_err
+  | ReturnAnalyzerErr of return_analyzer_err 
   [@@deriving show]
 
 and symbol_err = 
   | DuplicateEntry of Ast.identifier * Symbol.t
   | MultiDimArray of Ast.identifier
   | VoidVarDecl of Ast.identifier
+  | ArrayVarWithoutSize of Ast.identifier
   [@@deriving show]
 
 and repository_err = 
@@ -33,5 +35,8 @@ and type_checker_err =
   | IdxNotInt
   | AccIdxToNotArr
   [@@deriving show]
+
+and return_analyzer_err = 
+  | NoReturn of Ast.identifier
 
 let to_string _error = ""
