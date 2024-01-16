@@ -27,8 +27,8 @@ let handle_semantic_error source code_pos msg =
     in 
     Printf.eprintf "\n*** Error at lines %d-%d.\n%s\n*** %s\n\n" code_pos.Location.start_line (code_pos.Location.start_line + 5) text msg
 
-let handle_linker_error msg = 
-  Printf.eprintf "\n*** Error during linking: %s\n\n" msg
+(*let handle_linker_error msg = 
+  Printf.eprintf "\n*** Error during linking: %s\n\n" msg*)
 
 let load_file filename =
   let ic = open_in filename in 
@@ -46,8 +46,8 @@ let process_source filename =
       lexbuf |>
       Parsing.parse Scanner.next_token |>
       Semantic_analysis.check_semantic |>
-      Codegen.to_llvm_module |>
-      Optimizer.optimize_module
+      Deadcode_analyzer.detect_deadcode |>
+      Codegen.to_llvm_module 
     in 
     Llvm_analysis.assert_valid_module llmodule;
     Printf.printf "; Code generation succeded!\n\n%s\n" (Llvm.string_of_llmodule llmodule)  
@@ -56,7 +56,20 @@ let process_source filename =
   | Parsing.Syntax_error (pos,msg) -> 
     handle_syntatic_error source pos msg
   | Semantic_analysis.Semantic_error (pos, msg) -> 
-    handle_semantic_error source pos msg  
+    handle_semantic_error source pos msg
+  | Deadcode_analyzer.Deadcode_found deadcode_info -> 
+    let open Deadcode_analyzer in
+    List.iter (fun unreachable_pos -> (
+      handle_semantic_error source unreachable_pos "This statement is unreachable" 
+    )) deadcode_info.unreachable_code;
+    let open Deadcode_analyzer in 
+    List.iter (fun unused_var -> (
+      let open Deadcode_analyzer in 
+      let typ = (match unused_var.typ with 
+      | Param -> "function parameter"
+      | Local -> "local variable") in
+    handle_semantic_error source unused_var.location (String.concat " " ["The"; typ; unused_var.id; "is declared but not used"])
+    )) deadcode_info.unused_vars
 
 let () = 
   Printexc.record_backtrace true;
