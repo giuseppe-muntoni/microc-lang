@@ -4,7 +4,7 @@ int foo() {
     if (x > 0)
         return x;
     else
-        return 0;
+        x = x + 1;
 }
 
 int main() {
