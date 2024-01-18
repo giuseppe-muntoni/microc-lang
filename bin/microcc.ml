@@ -4,33 +4,58 @@ type action = Parse | Type_check | Dump_llvm_ir | Compile
 
 let[@inline] ( >> ) f g x = g (f x)
 
-let action_function outputfile optimize verify_module = function
+let execute_action source_name optimize verify_module = function
   | Parse ->
-      Parsing.parse Scanner.next_token
-      >> Ast.show_program
-      >> Printf.printf "Parsing succeded!\n\n%s\n"
+    Parsing.parse Scanner.next_token
+    >> Ast.show_program
+    >> Printf.printf "Parsing succeded!\n\n%s\n"
+    >> fun _ -> None
   | Type_check ->
-      Parsing.parse Scanner.next_token
-      >> Semantic_analysis.check_semantic >> Ast.show_program
-      >> Printf.printf "Type-check succeded!\n\n%s\n"
+    Parsing.parse Scanner.next_token
+    >> Semantic_analysis.check_semantic 
+    >> Deadcode_analyzer.detect_deadcode
+    >> Ast.show_program
+    >> Printf.printf "Type-check succeded!\n\n%s\n"
+    >> fun _ -> None
   | Dump_llvm_ir ->
-      Parsing.parse Scanner.next_token
-      >> Semantic_analysis.check_semantic >> Codegen.to_llvm_module
-      >> (fun llmodule ->
-           if verify_module then Llvm_analysis.assert_valid_module llmodule;
-           llmodule)
-      >> (if optimize then Optimizer.optimize_module else Fun.id)
-      >> Llvm.dump_module
-  | Compile ->
-      (Parsing.parse Scanner.next_token
-      >> Semantic_analysis.check_semantic >> Codegen.to_llvm_module
-      >> (fun llmodule ->
-           if verify_module then Llvm_analysis.assert_valid_module llmodule;
-           Llvm_analysis.assert_valid_module llmodule;
-           llmodule)
-      >> if optimize then Optimizer.optimize_module else Fun.id)
-      >> fun llmodule ->
-      assert (Llvm_bitwriter.write_bitcode_file llmodule outputfile)
+    Parsing.parse Scanner.next_token
+    >> Semantic_analysis.check_semantic 
+    >> Deadcode_analyzer.detect_deadcode
+    >> Codegen.to_llvm_module source_name
+    >> (fun llmodule -> 
+          if verify_module then 
+            Llvm_analysis.assert_valid_module llmodule;
+            llmodule
+        )
+    >> (if optimize then 
+          Optimizer.optimize_module 
+        else Fun.id)
+    >> Llvm.dump_module
+    >> fun _ -> None
+  | Compile -> 
+    (Parsing.parse Scanner.next_token
+    >> Semantic_analysis.check_semantic 
+    >> Deadcode_analyzer.detect_deadcode
+    >> Codegen.to_llvm_module source_name
+    >> (fun llmodule ->
+          if verify_module then 
+            Llvm_analysis.assert_valid_module llmodule;
+            llmodule
+        )
+    >> if optimize then Optimizer.optimize_module else Fun.id)
+    >> fun llmodule -> Some llmodule
+
+let link_modules modules = 
+  match (List.find_opt (fun llmodule -> llmodule = None) modules) with 
+  | Some(_) -> None 
+  | None -> 
+    let modules = List.map Option.get modules in
+    let final_module = List.fold_left (
+      fun dst src -> (
+        Llvm_linker.link_modules' dst src;
+        dst
+    )) (List.hd modules) (List.tl modules) in 
+    Some final_module
 
 let handle_syntatic_error source lexeme_pos msg =
   let lines = String.split_on_char '\n' source in
@@ -80,10 +105,12 @@ let load_file filename =
 let () =
   try
     let action = ref Compile in
-    let filename = ref "" in
+    let sources = Array.make 64 "" in
+    let n_sources = ref 0 in 
     let outputfile = ref "a.bc" in
     let optimize = ref false in
     let verify = ref false in
+    let rts_path = ref "" in
     let spec_list =
       [
         ("-p", 
@@ -96,7 +123,7 @@ let () =
           "Compile and print the generated LLVM IR" );
         ( "-c",
           Arg.Unit (fun () -> action := Compile),
-          "Compile the source file (default)" );
+          "Compile the sources file and link them together (default)" );
         ( "-o",
           Arg.Set_string outputfile,
           "Place the output into file (default: a.bc)" );
@@ -106,19 +133,93 @@ let () =
         ( "-verify",
           Arg.Set verify,
           "Verify the generated LLVM module (default: false)" );
+        ( "-rts",
+          Arg.Set_string rts_path,
+          "The path of the rts bitcode; in combination with -cl is linked with other files" );
       ]
     in
     let usage =
-      Printf.sprintf "Usage:\t%s [options] <source_file>\n" Sys.argv.(0)
+      Printf.sprintf "Usage:\t%s [options] <source_file_1> ...\n" Sys.argv.(0)
     in
-    Arg.parse spec_list (fun file -> filename := file) usage;
-    if String.equal !filename "" then Arg.usage spec_list usage
-    else
-      let source = load_file !filename in
+    Arg.parse spec_list (fun file -> 
+      Array.set sources !n_sources file; 
+      n_sources := !n_sources + 1
+    ) usage;
+    match (!n_sources, !action) with 
+    | (0, _) -> 
+      Arg.usage spec_list usage
+    | (n, Compile) -> (
+      let sources = Array.sub sources 0 n in 
+      let modules = Array.map (fun filename -> (
+        let source = load_file filename in
+        let lexbuf = Lexing.from_string ~with_positions:true source in
+        try execute_action filename !optimize !verify !action lexbuf with
+        | Scanner.Lexing_error (pos, msg) 
+        | Parsing.Syntax_error (pos, msg) ->
+            print_endline (String.concat " " ["Error in file"; filename]);
+            handle_syntatic_error source pos msg;
+            None
+        | Semantic_analysis.Semantic_error (pos, msg) ->
+            print_endline (String.concat " " ["Error in file"; filename]);
+            handle_semantic_error source pos msg;
+            None
+        | Deadcode_analyzer.Deadcode_found deadcode_info ->
+          let open Deadcode_analyzer in
+          List.iter (fun unreachable_pos -> (
+            handle_semantic_error source unreachable_pos "This statement is unreachable" 
+          )) deadcode_info.unreachable_code;
+          let open Deadcode_analyzer in 
+          List.iter (fun unused_var -> (
+            let open Deadcode_analyzer in 
+            let typ = (match unused_var.typ with 
+            | Param -> "function parameter"
+            | Local -> "local variable") in
+          handle_semantic_error source unused_var.location (String.concat " " ["The"; typ; unused_var.id; "is declared but not used"])
+          )) deadcode_info.unused_vars; 
+          None
+      )) sources in 
+      let final_module = link_modules (Array.to_list modules) in 
+      match final_module with
+      | Some final_module -> 
+        assert(Llvm_bitwriter.write_bitcode_file final_module "./tmp.bc");
+        let args = (
+          if (!rts_path = "") then 
+            [|"clang"; "./tmp.bc"; "-o"; !outputfile|]
+          else 
+            [|"clang"; "./tmp.bc"; !rts_path; "-o"; !outputfile|]
+        ) in 
+        let in_ch = Unix.open_process_args_in "clang" args in 
+        let pid = Unix.process_in_pid in_ch in 
+        let _ = Unix.waitpid [] pid in
+        let _ = Unix.open_process_args_in "rm" [|"rm"; "./tmp.bc"|] in ()
+      | None -> ())
+    | (1, action) -> (
+      let source = load_file (Array.get sources 0) in
       let lexbuf = Lexing.from_string ~with_positions:true source in
-      try action_function !outputfile !optimize !verify !action lexbuf with
-      | Scanner.Lexing_error (pos, msg) | Parsing.Syntax_error (pos, msg) ->
-          handle_syntatic_error source pos msg
+      try 
+        let _ = execute_action (Array.get sources 0) !optimize !verify action lexbuf in
+        ()  
+      with
+      | Scanner.Lexing_error (pos, msg) 
+      | Parsing.Syntax_error (pos, msg) ->
+          print_endline (String.concat " " ["Error in file"; (Array.get sources 0)]);
+          handle_syntatic_error source pos msg;
       | Semantic_analysis.Semantic_error (pos, msg) ->
-          handle_semantic_error source pos msg
+          print_endline (String.concat " " ["Error in file"; (Array.get sources 0)]);
+          handle_semantic_error source pos msg;
+      | Deadcode_analyzer.Deadcode_found deadcode_info -> 
+        let open Deadcode_analyzer in
+        List.iter (fun unreachable_pos -> (
+          handle_semantic_error source unreachable_pos "This statement is unreachable" 
+        )) deadcode_info.unreachable_code;
+        let open Deadcode_analyzer in 
+        List.iter (fun unused_var -> (
+          let open Deadcode_analyzer in 
+          let typ = (match unused_var.typ with 
+          | Param -> "function parameter"
+          | Local -> "local variable") in
+        handle_semantic_error source unused_var.location (String.concat " " ["The"; typ; unused_var.id; "is declared but not used"])
+        )) deadcode_info.unused_vars)
+    | _ -> 
+      Arg.usage spec_list usage
   with Sys_error msg -> Printf.eprintf "*** Error %s ***\n" msg
