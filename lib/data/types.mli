@@ -39,3 +39,5 @@ val convert_to_data_type : Ast.typ -> data_type
 val compare : number -> number -> int
 
 val max : number -> number -> number
+
+val to_string : data_type -> string
