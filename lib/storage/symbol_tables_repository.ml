@@ -15,7 +15,6 @@ let check_array_size id symbol location = match symbol with
       Ok()
   | _ -> Ok()
 
-
 let read_all () = 
   let bindings = Repository.bindings !repository in
   List.map snd bindings
@@ -24,14 +23,14 @@ let read location =
   try Ok(Repository.find (Location.show_code_pos location) !repository)
   with Not_found -> Error(location, SymbolTablesRepositoryErr ScopeNotFound)
 
-let update location update_fun = 
-  let%bind scope = read location in 
+let update scope_loc decl_loc update_fun = 
+  let%bind scope = read scope_loc in 
   match update_fun scope with
   | Ok(updated_scope) -> 
-    repository := Repository.add (Location.show_code_pos location) updated_scope !repository;
+    repository := Repository.add (Location.show_code_pos scope_loc) updated_scope !repository;
     Ok()
   | Error(err) -> 
-    Error(location, err)
+    Error(decl_loc, err)
 
 let rec add_from_stmt stmt current_scope_loc = match stmt with
 | { Ast.loc = stmt_location; Ast.node = stmt } ->
@@ -56,13 +55,13 @@ and add_from_stmtordecs stmtordecs current_scope_loc =
     | Ast.Stmt(stmt) -> 
       add_from_stmt stmt current_scope_loc
     | Ast.Dec(typ, id) -> 
-      let%bind _ = update current_scope_loc (Symbol_builder.build_var id typ) in 
+      let%bind _ = update current_scope_loc stmtordec.loc (Symbol_builder.build_var id typ) in 
       let%bind current_scope = read current_scope_loc in 
       let symbol = Symbol_table.lookup id current_scope in 
       check_array_size id symbol stmtordec.loc
   )) (Ok()) stmtordecs
 
-let add_from_fundecl fun_decl = 
+let add_from_fundecl fun_decl fun_decl_loc = 
   let open Ast in 
   match fun_decl.body with
   | Some body -> (
@@ -72,7 +71,7 @@ let add_from_fundecl fun_decl =
       let%bind global_scope = read global_scope_loc in 
       let fun_scope = Symbol_table.begin_block global_scope in 
       repository := Repository.add (Location.show_code_pos body.loc) fun_scope !repository;
-      let%bind _ = update body.loc (Symbol_builder.build_vars fun_decl.formals) in
+      let%bind _ = update body.loc fun_decl_loc (Symbol_builder.build_vars fun_decl.formals) in
       add_from_stmtordecs stmtordecs body.loc) 
     | _ -> failwith "Unexpected error: the body of a function must be a block, syntactically"
     )
@@ -83,21 +82,21 @@ let add_global_definition topdecl =
   let global_scope_loc = Location.dummy_code_pos in 
   match topdecl.node with 
   | Ast.Vardec (typ, id, true) -> 
-    let%bind _ = update global_scope_loc (Symbol_builder.build_extern_var id typ) in
+    let%bind _ = update global_scope_loc topdecl.loc (Symbol_builder.build_extern_var id typ) in
     let%bind global_scope = read global_scope_loc in 
     let symbol = Symbol_table.lookup id global_scope in 
     check_array_size id symbol topdecl.loc
   | Ast.Vardec (typ, id, false) -> 
-    let%bind _ = update global_scope_loc (Symbol_builder.build_var id typ) in 
+    let%bind _ = update global_scope_loc topdecl.loc (Symbol_builder.build_var id typ) in 
     let%bind global_scope = read global_scope_loc in 
     let symbol = Symbol_table.lookup id global_scope in 
     check_array_size id symbol topdecl.loc
   | Ast.Fundecl fun_decl -> 
-    update global_scope_loc (Symbol_builder.build_fun fun_decl)
+    update global_scope_loc topdecl.loc (Symbol_builder.build_fun fun_decl)
 
 let add_rts_functions () = 
   let open Ast in
-  let%bind _ = update Location.dummy_code_pos (Symbol_builder.build_fun {
+  let%bind _ = update Location.dummy_code_pos Location.dummy_code_pos (Symbol_builder.build_fun {
     typ = Ast.TypV;
     fname = "print";
     formals = [
@@ -105,19 +104,19 @@ let add_rts_functions () =
     ];
     body = None
   }) in 
-  let%bind _ = update Location.dummy_code_pos (Symbol_builder.build_fun {
+  let%bind _ = update Location.dummy_code_pos Location.dummy_code_pos (Symbol_builder.build_fun {
     typ = Ast.TypI;
     fname = "getint";
     formals = [];
     body = None
   }) in 
-  let%bind _ = update Location.dummy_code_pos (Symbol_builder.build_fun {
+  let%bind _ = update Location.dummy_code_pos Location.dummy_code_pos (Symbol_builder.build_fun {
     typ = Ast.TypV;
     fname = "print_endline";
     formals = [(Ast.TypA(Ast.TypC, None), "str")];
     body = None
   }) in 
-  update Location.dummy_code_pos (Symbol_builder.build_fun {
+  update Location.dummy_code_pos Location.dummy_code_pos (Symbol_builder.build_fun {
     typ = Ast.TypV;
     fname = "print_float";
     formals = [(Ast.TypF, "x")];
@@ -136,7 +135,7 @@ let add_from_program program = match program with
     let open Ast in
     let%bind _ = res in 
     match topdecl.node with
-    | Ast.Fundecl fun_decl -> add_from_fundecl fun_decl
+    | Ast.Fundecl fun_decl -> add_from_fundecl fun_decl topdecl.loc
     | _ -> res
   ) (Ok()) topdecls
 
