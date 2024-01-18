@@ -47,7 +47,7 @@ let process_source filename =
       Parsing.parse Scanner.next_token |>
       Semantic_analysis.check_semantic |>
       Deadcode_analyzer.detect_deadcode |>
-      Codegen.to_llvm_module 
+      Codegen.to_llvm_module filename
     in 
     Llvm_analysis.assert_valid_module llmodule;
     Printf.printf "; Code generation succeded!\n\n%s\n" (Llvm.string_of_llmodule llmodule)  

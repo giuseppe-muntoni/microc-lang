@@ -6,7 +6,7 @@ let well_formed_module_test sample _ =
   let program = Utils.create_ast sample in 
   let program = Semantic_analysis.check_semantic program in 
   let program = Deadcode_analyzer.detect_deadcode program in 
-  let llmodule = Codegen.to_llvm_module program in 
+  let llmodule = Codegen.to_llvm_module sample program in 
   let result = Llvm_analysis.verify_module llmodule in 
   match result with 
   | None -> ()
