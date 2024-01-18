@@ -49,7 +49,6 @@ let adapt_source_array_to_lltype info llvm_context =
   Llvm.array_type elements_type array_size 
 
 let adapt_source_type_to_lltype typ llvm_context = 
-  print_endline "Adapting source type to lltype...";
   let open Types in
   match typ with
   | PrimitiveType(typ) -> 
@@ -60,7 +59,6 @@ let adapt_source_type_to_lltype typ llvm_context =
     adapt_source_array_to_lltype array_info llvm_context
 
 let adapt_source_param_to_lltype typ llvm_context = 
-  print_endline "Adapting function param to lltype...";
   let open Types in
   match typ with
   | PrimitiveType(typ) -> 
@@ -75,7 +73,6 @@ let adapt_source_param_to_lltype typ llvm_context =
     adapt_source_pointer_to_lltype ptr_info llvm_context
 
 let adapt_source_symbol_to_lltype symbol llvm_context = 
-  print_endline "Adapting source symbol to lltype...";
   match symbol with 
   | Symbol.Var(typ, _) ->
     adapt_source_type_to_lltype typ llvm_context
@@ -86,8 +83,24 @@ let adapt_source_symbol_to_lltype symbol llvm_context =
     ) params in 
     Llvm.function_type ret_type (Array.of_list params_type)
 
+let rec check_return_presence_stmt stmt =
+  let open Ast in 
+  match stmt.node with 
+  | Ast.Expr _ -> false
+  | Ast.Return _ -> true
+  | Ast.If(_, then_stmt, else_stmt) -> check_return_presence_stmt then_stmt && check_return_presence_stmt else_stmt
+  | Ast.While(_, _) -> false
+  | Ast.Block stmtordecs -> 
+    match (List.find_opt (fun stmtordec -> (
+      let open Ast in
+      match stmtordec.node with 
+      | Ast.Dec _ -> false
+      | Ast.Stmt stmt -> check_return_presence_stmt stmt 
+    ))) stmtordecs with 
+    | None -> false
+    | Some _ -> true
+
 let rec generate_access_code access llvm_context bblock builder fun_llvalue llvalues_table symbol_table = 
-  print_endline "Generating access code..." ;
   let open Ast in 
   match access.node with 
   | Ast.AccVar id ->
@@ -108,18 +121,12 @@ let rec generate_access_code access llvm_context bblock builder fun_llvalue llva
     let (address_of_arr, value_of_arr) = generate_access_code access llvm_context bblock builder fun_llvalue llvalues_table symbol_table in 
     let (index, _, builder) = generate_expr_code expr llvm_context bblock builder fun_llvalue llvalues_table symbol_table in 
     let index = Llvm.build_sext index (Llvm.i64_type llvm_context) "index" builder in
-    print_endline "Doing gep...";
-    Llvm.dump_value address_of_arr;
-    print_endline "";
-    Llvm.dump_value value_of_arr;
-    print_endline "";
     let typ = Llvm.type_of value_of_arr in 
     let address = 
       (if (Llvm.classify_type typ = Llvm.TypeKind.Array) then 
         Llvm.build_gep address_of_arr [|( Llvm.const_int (Llvm.i64_type llvm_context) 0) ; index |] "arrayaccess" builder
       else 
         Llvm.build_gep value_of_arr [| index |] "arrayaccess" builder) in 
-      print_endline "Gep done...";
     let value = Llvm.build_load address "load" builder in
     (address, value)
 
@@ -156,7 +163,6 @@ and generate_short_circuit_or e1 e2 llvm_context or_lhs_bb or_lhs_builder fun_ll
   (or_res, or_end_bb, or_end_builder)
 
 and generate_expr_code expr llvm_context bblock builder fun_llvalue llvalues_table symbol_table = 
-  print_endline "Generating expression code..." ;
   let open Ast in 
   match expr.node with 
   | Ast.Access(access) -> 
@@ -279,7 +285,6 @@ and generate_expr_code expr llvm_context bblock builder fun_llvalue llvalues_tab
     (Llvm.build_call called_llvalue (Array.of_list actuals) "" builder, bblock, builder)
 
 let rec generate_stmt_code stmt llvm_context bblock builder llvalues_table symbol_table fun_llvalue return_basic_block =
-  print_endline "Generating statement code..." ;
   let open Ast in 
   match stmt.node with
   | Ast.If(guard, then_stmt, else_stmt) -> 
@@ -307,30 +312,29 @@ let rec generate_stmt_code stmt llvm_context bblock builder llvalues_table symbo
     (bblock, builder)
 
 and generate_if_code (guard, then_stmt, else_stmt) llvm_context guard_block guard_builder llvalues_table symbol_table fun_llvalue return_basic_block =
-  print_endline "Generating if code";
   let (guard_val, _, guard_builder)  = generate_expr_code guard llvm_context guard_block guard_builder fun_llvalue llvalues_table symbol_table in 
   let then_block = Llvm.append_block llvm_context "if.then" fun_llvalue in 
   let then_builder = Llvm.builder_at_end llvm_context then_block in 
-  let (then_block, then_builder) = generate_stmt_code then_stmt llvm_context then_block then_builder llvalues_table symbol_table fun_llvalue return_basic_block in 
+  let (_, then_builder) = generate_stmt_code then_stmt llvm_context then_block then_builder llvalues_table symbol_table fun_llvalue return_basic_block in 
   let else_block = Llvm.append_block llvm_context "if.else" fun_llvalue in 
   let else_builder = Llvm.builder_at_end llvm_context else_block in 
-  let (else_block, else_builder) = generate_stmt_code else_stmt llvm_context else_block else_builder llvalues_table symbol_table fun_llvalue return_basic_block in 
+  let (_, else_builder) = generate_stmt_code else_stmt llvm_context else_block else_builder llvalues_table symbol_table fun_llvalue return_basic_block in 
   let _ = Llvm.build_cond_br guard_val then_block else_block guard_builder in
-  match (Llvm.block_terminator then_block, Llvm.block_terminator else_block) with 
-  | (Some _, Some _) -> 
+  match (check_return_presence_stmt then_stmt, check_return_presence_stmt else_stmt) with 
+  | (true, true) -> 
     (* Due to deadcode analysis I expect that there's no code in the block that contains the actual if then else *)
     (else_block, else_builder)
-  | (Some _, None) -> 
+  | (true, false) -> 
     let if_end_block = Llvm.append_block llvm_context "if.end" fun_llvalue in
     let if_end_builder = Llvm.builder_at_end llvm_context if_end_block in 
     let _ = Llvm.build_br if_end_block else_builder in
     (if_end_block, if_end_builder)
-  | (None, Some _) -> 
+  | (false, true) -> 
     let if_end_block = Llvm.append_block llvm_context "if.end" fun_llvalue in
     let if_end_builder = Llvm.builder_at_end llvm_context if_end_block in 
     let _ = Llvm.build_br if_end_block then_builder in
     (if_end_block, if_end_builder)
-  | (None, None) ->
+  | (false, false) ->
     let if_end_block = Llvm.append_block llvm_context "if.end" fun_llvalue in
     let if_end_builder = Llvm.builder_at_end llvm_context if_end_block in 
     let _ = Llvm.build_br if_end_block then_builder in
@@ -338,7 +342,6 @@ and generate_if_code (guard, then_stmt, else_stmt) llvm_context guard_block guar
     (if_end_block, if_end_builder)
 
 and generate_while_code (guard, body) llvm_context builder llvalues_table symbol_table fun_llvalue return_basic_block = 
-  print_endline "Generating while code..." ;
   let while_guard_block = Llvm.append_block llvm_context "while.guard" fun_llvalue in 
   let while_guard_builder = Llvm.builder_at_end llvm_context while_guard_block in 
   let while_body_block = Llvm.append_block llvm_context "while.body" fun_llvalue in 
@@ -348,16 +351,15 @@ and generate_while_code (guard, body) llvm_context builder llvalues_table symbol
   let _ = Llvm.build_br while_guard_block builder in 
   let (guard_val, _, guard_end_builder) = generate_expr_code guard llvm_context while_guard_block while_guard_builder fun_llvalue llvalues_table symbol_table in 
   let _ = Llvm.build_cond_br guard_val while_body_block while_end_block guard_end_builder in 
-  let (while_body_block, while_body_builder) = generate_stmt_code body llvm_context while_body_block while_body_builder llvalues_table symbol_table fun_llvalue return_basic_block in
-  match Llvm.block_terminator while_body_block with 
-  | Some _ -> 
+  let (_, while_body_builder) = generate_stmt_code body llvm_context while_body_block while_body_builder llvalues_table symbol_table fun_llvalue return_basic_block in
+  match check_return_presence_stmt body with 
+  | true -> 
     (while_end_block, while_end_builder)
-  | None -> 
+  | false -> 
     let _ = Llvm.build_br while_guard_block while_body_builder in 
     (while_end_block, while_end_builder)
 
 and generate_stmtordecs_code stmtordecs llvm_context bblock builder llvalues_table symbol_table fun_llvalue return_basic_block = 
-  print_endline "Generating statements or declarations..." ;
   let open Ast in
   let (_, bblock, builder) = List.fold_left(fun res stmtordec -> 
     let (llvalues_table, bblock, builder) = res in 
@@ -374,7 +376,6 @@ and generate_stmtordecs_code stmtordecs llvm_context bblock builder llvalues_tab
   (bblock, builder)
 
 let generate_fundecl_code fundecl global_symbol_table global_llvalues_table llvm_context = 
-  print_endline "Generating function declaration..." ;
   let open Ast in
   match fundecl.body with 
   | None -> 
@@ -427,23 +428,57 @@ let generate_fundecl_code fundecl global_symbol_table global_llvalues_table llvm
     | _ -> 
       failwith "Unexpected error"
 
+let rec get_global_init typ llcontext = 
+  let open Types in 
+  match typ with 
+  | PrimitiveType VoidType -> failwith "Not possible!"
+  | PrimitiveType BoolType -> Llvm.const_int (Llvm.i1_type llcontext) 0
+  | PrimitiveType CharType -> Llvm.const_int (Llvm.i8_type llcontext) 0
+  | PrimitiveType Number IntType -> Llvm.const_int (Llvm.i32_type llcontext) 0
+  | PrimitiveType Number FloatType -> Llvm.const_float (Llvm.float_type llcontext) 0.0
+  | CompoundType Pointer pointer_info -> Llvm.const_pointer_null (adapt_source_pointer_to_lltype pointer_info llcontext)
+  | CompoundType Array array_info -> 
+    let array_size = Option.get (snd(List.hd(array_info.sizes))) in 
+    match array_info.indirection with 
+    | 0 -> 
+      let elements_type = adapt_source_primitive_type_to_lltype array_info.elements_type llcontext in
+      let el_init = get_global_init (PrimitiveType array_info.elements_type) llcontext in 
+      let init = Array.make array_size el_init in 
+      Llvm.const_array elements_type init
+    | n -> 
+      let pointer_info = {
+        pointed_type = array_info.elements_type;
+        indirection = n;
+      } in 
+      let pointer_lltype = adapt_source_pointer_to_lltype pointer_info llcontext in 
+      let el_init = get_global_init (CompoundType(Pointer pointer_info)) llcontext in 
+      let init = Array.make array_size el_init in 
+      Llvm.const_array pointer_lltype init
+
 let generate_global_definitions topdecl global_symbol_table global_llvalues_table llvm_module llvm_context = 
-  print_endline "Generating global definitions..." ;
   let open Ast in
   match topdecl.node with 
-  | Vardec(_, id, _) ->
+  | Vardec(_, id, extern) ->
     let var_symbol = Symbol_table.lookup id global_symbol_table in 
     let var_lltype = adapt_source_symbol_to_lltype var_symbol llvm_context in 
-    let var_llvalue = Llvm.declare_global var_lltype id llvm_module in 
-    Symbol_table.add_entry id var_llvalue global_llvalues_table
+    let var_llvalue = (if extern then
+      Llvm.declare_global var_lltype id llvm_module
+    else 
+      (match var_symbol with 
+      | Symbol.Fun _ -> failwith "Not possible!"
+      | Symbol.Var(t, _) ->  
+        let global_init = get_global_init t llvm_context in 
+        Llvm.define_global id global_init llvm_module)
+    ) in Symbol_table.add_entry id var_llvalue global_llvalues_table
   | Fundecl fundecl -> 
     let fun_symbol = Symbol_table.lookup fundecl.fname global_symbol_table in 
     let fun_lltype = adapt_source_symbol_to_lltype fun_symbol llvm_context in 
-    let fun_llvalue = Llvm.define_function fundecl.fname fun_lltype llvm_module in 
+    let fun_llvalue = (match fundecl.body with 
+    | Some _ -> Llvm.define_function fundecl.fname fun_lltype llvm_module
+    | None -> Llvm.declare_function fundecl.fname fun_lltype llvm_module) in 
     Symbol_table.add_entry fundecl.fname fun_llvalue global_llvalues_table
 
 let generate_rts_functions global_symbol_table global_llvalues_table llvm_module llvm_context =
-  print_endline "Generating rts functions..." ;
   (* print function *)
   let print_fun = Symbol_table.lookup "print" global_symbol_table in  
   let fun_lltype = adapt_source_symbol_to_lltype print_fun llvm_context in 
@@ -466,7 +501,6 @@ let generate_rts_functions global_symbol_table global_llvalues_table llvm_module
   Symbol_table.add_entry "print_float" fun_llvalue llvalues_table
 
 let generate_program_code program llvm_module llvm_context = 
-  print_endline "Generating program code...";
   match program with
   | Ast.Prog topdecls -> 
     let global_symbol_table = Result.get_ok(Symbol_tables_repository.read Location.dummy_code_pos) in 
@@ -483,9 +517,8 @@ let generate_program_code program llvm_module llvm_context =
         generate_fundecl_code fundecl global_symbol_table global_llvalues_table llvm_context
     )) topdecls
 
-let to_llvm_module program =
+let to_llvm_module name program =
   let llvm_context = Llvm.global_context() in
-  let llvm_module = Llvm.create_module llvm_context "source-code-module" in 
+  let llvm_module = Llvm.create_module llvm_context name in 
   let _ = generate_program_code program llvm_module llvm_context in 
-  print_endline("Done!");
   llvm_module
