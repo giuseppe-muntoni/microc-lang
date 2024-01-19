@@ -13,14 +13,12 @@ let execute_action source_name optimize verify_module = function
   | Type_check ->
     Parsing.parse Scanner.next_token
     >> Semantic_analysis.check_semantic 
-    >> Deadcode_analyzer.detect_deadcode
     >> Ast.show_program
     >> Printf.printf "Type-check succeded!\n\n%s\n"
     >> fun _ -> None
   | Dump_llvm_ir ->
     Parsing.parse Scanner.next_token
     >> Semantic_analysis.check_semantic 
-    >> Deadcode_analyzer.detect_deadcode
     >> Codegen.to_llvm_module source_name
     >> (fun llmodule -> 
           if verify_module then 
@@ -35,7 +33,6 @@ let execute_action source_name optimize verify_module = function
   | Compile -> 
     (Parsing.parse Scanner.next_token
     >> Semantic_analysis.check_semantic 
-    >> Deadcode_analyzer.detect_deadcode
     >> Codegen.to_llvm_module source_name
     >> (fun llmodule ->
           if verify_module then 
@@ -159,24 +156,12 @@ let () =
             print_endline (String.concat " " ["Error in file"; filename]);
             handle_syntatic_error source pos msg;
             None
-        | Semantic_analysis.Semantic_error (pos, msg) ->
+        | Semantic_analysis.Semantic_errors errors  ->
             print_endline (String.concat " " ["Error in file"; filename]);
-            handle_semantic_error source pos msg;
+            List.iter (fun (pos, msg) -> (
+              handle_semantic_error source pos msg;
+            )) errors;
             None
-        | Deadcode_analyzer.Deadcode_found deadcode_info ->
-          let open Deadcode_analyzer in
-          List.iter (fun unreachable_pos -> (
-            handle_semantic_error source unreachable_pos "This statement is unreachable" 
-          )) deadcode_info.unreachable_code;
-          let open Deadcode_analyzer in 
-          List.iter (fun unused_var -> (
-            let open Deadcode_analyzer in 
-            let typ = (match unused_var.typ with 
-            | Param -> "function parameter"
-            | Local -> "local variable") in
-          handle_semantic_error source unused_var.location (String.concat " " ["The"; typ; unused_var.id; "is declared but not used"])
-          )) deadcode_info.unused_vars; 
-          None
       )) sources in 
       let final_module = link_modules (Array.to_list modules) in 
       match final_module with
@@ -204,22 +189,11 @@ let () =
       | Parsing.Syntax_error (pos, msg) ->
           print_endline (String.concat " " ["Error in file"; (Array.get sources 0)]);
           handle_syntatic_error source pos msg;
-      | Semantic_analysis.Semantic_error (pos, msg) ->
+      | Semantic_analysis.Semantic_errors errors ->
           print_endline (String.concat " " ["Error in file"; (Array.get sources 0)]);
-          handle_semantic_error source pos msg;
-      | Deadcode_analyzer.Deadcode_found deadcode_info -> 
-        let open Deadcode_analyzer in
-        List.iter (fun unreachable_pos -> (
-          handle_semantic_error source unreachable_pos "This statement is unreachable" 
-        )) deadcode_info.unreachable_code;
-        let open Deadcode_analyzer in 
-        List.iter (fun unused_var -> (
-          let open Deadcode_analyzer in 
-          let typ = (match unused_var.typ with 
-          | Param -> "function parameter"
-          | Local -> "local variable") in
-        handle_semantic_error source unused_var.location (String.concat " " ["The"; typ; unused_var.id; "is declared but not used"])
-        )) deadcode_info.unused_vars)
+          List.iter (fun (pos, msg) -> (
+              handle_semantic_error source pos msg;
+            )) errors;)
     | _ -> 
       Arg.usage spec_list usage
   with Sys_error msg -> Printf.eprintf "*** Error %s ***\n" msg

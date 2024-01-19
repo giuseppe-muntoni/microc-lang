@@ -3,6 +3,7 @@ type t =
   | SymbolTablesRepositoryErr of repository_err 
   | TypeCheckerErr of type_checker_err
   | ReturnAnalyzerErr of return_analyzer_err 
+  | DeadcodeFound of deadcode_type
 [@@deriving show]
 
 and symbol_err = 
@@ -40,6 +41,14 @@ and return_analyzer_err =
   | NoReturn of Ast.identifier
   [@@deriving show] 
 
+and deadcode_type = 
+  | StmtUnreachable
+  | UnusedVar of unused_type * Ast.identifier
+
+and unused_type = 
+  | Local
+  | Param 
+
 let to_string error = match error with 
   | SymbolErr error ->
     (match error with 
@@ -72,7 +81,12 @@ let to_string error = match error with
     | DerefNotPtr -> "You are trying to dereferencing a symbol that is not a pointer"
     | IdxNotInt -> "You are trying to indexing an array with a symbol that is not an int"
     | AccIdxToNotArr -> "You are trying to indexing a symbol that is not an array")
-  | ReturnAnalyzerErr error ->
+  | ReturnAnalyzerErr error -> (
     match error with 
-    | NoReturn id -> String.concat " " ["In the function"; id; "exists some execution path for which the return statement is missing"]
+    | NoReturn id -> String.concat " " ["In the function"; id; "exists some execution path for which the return statement is missing"])
+  | DeadcodeFound deadcode_type -> 
+    match deadcode_type with 
+    | StmtUnreachable -> "The statement is unreachable"
+    | UnusedVar(Local, id) -> String.concat " " ["The local variable"; id; "is unused"]
+    | UnusedVar(Param, id) -> String.concat " " ["The function parameter"; id; "is unused"]
 

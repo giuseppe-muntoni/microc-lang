@@ -49,21 +49,10 @@ let process_source filename =
   | Scanner.Lexing_error (pos, msg)
   | Parsing.Syntax_error (pos,msg) -> 
     handle_syntatic_error source pos msg
-  | Semantic_analysis.Semantic_error (pos, msg) -> 
-    handle_semantic_error source pos msg
-  | Deadcode_analyzer.Deadcode_found deadcode_info -> 
-    let open Deadcode_analyzer in
-    List.iter (fun unreachable_pos -> (
-      handle_semantic_error source unreachable_pos "This statement is unreachable" 
-    )) deadcode_info.unreachable_code;
-    let open Deadcode_analyzer in 
-    List.iter (fun unused_var -> (
-      let open Deadcode_analyzer in 
-      let typ = (match unused_var.typ with 
-      | Param -> "function parameter"
-      | Local -> "local variable") in
-    handle_semantic_error source unused_var.location (String.concat " " ["The"; typ; unused_var.id; "is declared but not used"])
-    )) deadcode_info.unused_vars
+  | Semantic_analysis.Semantic_errors errors -> 
+    List.iter (fun (pos, msg) -> (
+      handle_semantic_error source pos msg;
+    )) errors
 
 let () = 
   Printexc.record_backtrace true;

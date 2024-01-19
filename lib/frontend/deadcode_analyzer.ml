@@ -1,18 +1,3 @@
-type deadcode_info = {
-    unreachable_code : Location.code_pos list;
-    unused_vars : unused_var list;
-}
-
-and unused_var = {
-    id : Ast.identifier;
-    typ : unused_typ;
-    location : Location.code_pos;
-}
-
-and unused_typ = Param | Local
-
-exception Deadcode_found of deadcode_info 
-
 module Unreachable_code_detector : sig
   val detect: Ast.program -> Location.code_pos list
 end
@@ -69,7 +54,7 @@ end
 
 
 module Unused_vars_detector : sig 
-  val detect: Ast.program -> unused_var list
+  val detect: Ast.program -> (Location.code_pos * Semantic_errors.deadcode_type) list
 end
 = 
 struct
@@ -78,12 +63,7 @@ end
 
 let detect_deadcode ast = 
   let unreachable_code = Unreachable_code_detector.detect ast in 
+  let unreachable_code = List.map (fun pos -> (pos, Semantic_errors.StmtUnreachable)) unreachable_code in 
   let unused_vars = Unused_vars_detector.detect ast in 
-  match (unreachable_code, unused_vars) with 
-  | ([], []) -> 
-    ast
-  | _ -> 
-    raise (Deadcode_found {
-      unreachable_code;
-      unused_vars;
-    })
+  unreachable_code @ unused_vars
+    

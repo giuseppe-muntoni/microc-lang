@@ -8,14 +8,9 @@ let with_deadcode_test sample stmt_num var_num _ =
   match res with 
   | Error(err) -> 
     assert_bool (Semantic_errors.show (snd err)) false 
-  | Ok() -> 
-    try 
-      let _ = Deadcode_analyzer.detect_deadcode program in 
-      assert_bool "Some deadcode must be detected but nothing is detected" false
-    with Deadcode_analyzer.Deadcode_found deadcode_info ->
-      let open Deadcode_analyzer in 
-      assert_equal (List.length deadcode_info.unreachable_code) stmt_num;
-      assert_equal (List.length deadcode_info.unused_vars) var_num
+  | Ok() ->  
+    let deadcode = Deadcode_analyzer.detect_deadcode program in 
+    assert_equal (List.length deadcode) (stmt_num + var_num)
 
 let without_deadcode_test sample _ = 
   let program = Utils.create_ast sample in
@@ -24,10 +19,8 @@ let without_deadcode_test sample _ =
   | Error(err) -> 
     assert_bool (Semantic_errors.show (snd err)) false 
   | Ok() -> 
-    try 
-      let _ = Deadcode_analyzer.detect_deadcode program in ()
-    with Deadcode_analyzer.Deadcode_found _ ->
-      assert_bool "No deadcode but some deadcode is found" false
+    let deadcode = Deadcode_analyzer.detect_deadcode program in
+    assert_equal (List.length deadcode) 0
 
 let with_deadcode_tests = 
   "Tests for deadcode detection" >::: [
