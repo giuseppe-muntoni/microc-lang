@@ -34,8 +34,6 @@ type data_type =
     | CompoundType of compound_type
 [@@deriving show]
 
-val convert_to_data_type : Ast.typ -> data_type
-
 val compare : number -> number -> int
 
 val max : number -> number -> number

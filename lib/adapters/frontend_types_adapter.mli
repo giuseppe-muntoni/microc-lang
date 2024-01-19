@@ -1,0 +1,1 @@
+val adapt_ast_type : Ast.typ -> Types.data_type

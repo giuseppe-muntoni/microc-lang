@@ -12,12 +12,12 @@ let is_multidim_array data_type =
 let build_fun fun_decl scope =
   let open Symbol in
   let open Ast in 
-  let ret_typ = Types.convert_to_data_type fun_decl.typ in 
+  let ret_typ = Frontend_types_adapter.adapt_ast_type fun_decl.typ in 
   match ret_typ with
   | Types.CompoundType _ -> 
     failwith "Unexpected error: a function cannot return syntactically a compound data type"
   | Types.PrimitiveType ret_typ ->
-    let formals = List.map (fun (typ, id) -> (Types.convert_to_data_type typ, id)) fun_decl.formals in
+    let formals = List.map (fun (typ, id) -> (Frontend_types_adapter.adapt_ast_type typ, id)) fun_decl.formals in
     let symbol = Fun(ret_typ, formals) in 
     try
       Ok(Symbol_table.add_entry fun_decl.fname symbol scope)
@@ -27,7 +27,7 @@ let build_fun fun_decl scope =
 let _build_var is_extern id typ scope  = 
   let open Symbol in
   let open Types in
-  let typ = Types.convert_to_data_type typ in 
+  let typ = Frontend_types_adapter.adapt_ast_type typ in 
   match (is_multidim_array typ, typ = PrimitiveType VoidType) with 
   | (true, false) -> 
     Error(SymbolErr(MultiDimArray id))
