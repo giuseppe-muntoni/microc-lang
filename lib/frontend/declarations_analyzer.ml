@@ -1,0 +1,52 @@
+open Semantic_errors
+open Base.Result.Let_syntax
+
+let check_array_size id symbol location = match symbol with 
+  | Symbol.Var(Types.CompoundType(Types.Array array_info), _) -> 
+    let open Types in 
+    if (snd(List.hd array_info.sizes) = None) then
+      Error(location, DeclarationsErr(ArrayVarWithoutSize id))
+    else 
+      Ok()
+  | _ -> Ok()
+
+let rec check_accesses_acc access global_scope current_scope = 
+  let open Ast in 
+  match access.node with 
+  | Ast.AccVar id -> (
+    try
+      let _ = Symbol_table.lookup id current_scope in 
+      Ok()
+    with Symbol_table.NotFoundEntry _ -> 
+      Error(access.loc, DeclarationsErr(NotDeclaredVar(id))))
+  | Ast.AccDeref expr -> 
+    check_accesses expr global_scope current_scope
+  | Ast.AccIndex(access, expr) -> 
+    let%bind _ = check_accesses_acc access global_scope current_scope in 
+    check_accesses expr global_scope current_scope
+
+and check_accesses expr global_scope current_scope = 
+  let open Ast in 
+  match expr.node with 
+  | Ast.Access(access) -> 
+    check_accesses_acc access global_scope current_scope
+  | Ast.Assign(access, expr) -> 
+    let%bind _ = check_accesses_acc access global_scope current_scope in 
+    check_accesses expr global_scope current_scope
+  | Ast.Addr(access) ->
+    check_accesses_acc access global_scope current_scope
+  | Ast.UnaryOp(_, expr) ->
+    check_accesses expr global_scope current_scope
+  | Ast.BinaryOp(_, expr1, expr2) -> 
+    let%bind _ = check_accesses expr1 global_scope current_scope in 
+    check_accesses expr2 global_scope current_scope
+  | Ast.Call(id, actuals) -> (
+    try
+      let _ = Symbol_table.lookup id global_scope in 
+      List.fold_left (fun res actual -> (
+        let%bind _ = res in 
+        check_accesses actual global_scope current_scope
+      )) (Ok()) actuals
+    with Symbol_table.NotFoundEntry _ ->
+      Error(expr.loc, DeclarationsErr(NotDeclaredFun(id))))
+  | _ -> Ok()

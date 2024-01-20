@@ -6,15 +6,6 @@ module Repository = Map.Make(String)
 let actual_program = ref None;;
 let repository = ref (Repository.empty);;
 
-let check_array_size id symbol location = match symbol with 
-  | Symbol.Var(Types.CompoundType(Types.Array array_info), _) -> 
-    let open Types in 
-    if (snd(List.hd array_info.sizes) = None) then
-      Error(location, SymbolErr(ArrayVarWithoutSize id))
-    else 
-      Ok()
-  | _ -> Ok()
-
 let read_all () = 
   let bindings = Repository.bindings !repository in
   List.map snd bindings
@@ -34,18 +25,27 @@ let update scope_loc decl_loc update_fun =
 
 let rec add_from_stmt stmt current_scope_loc = match stmt with
 | { Ast.loc = stmt_location; Ast.node = stmt } ->
+  let%bind global_scope = read Location.dummy_code_pos in 
+  let%bind current_scope = read current_scope_loc in 
   match stmt with
-  | Ast.If(_, then_stmt, else_stmt) ->
+  | Ast.If(guard, then_stmt, else_stmt) ->
+    let%bind _ = Declarations_analyzer.check_accesses guard global_scope current_scope in 
     let%bind _ = add_from_stmt then_stmt current_scope_loc in
     add_from_stmt else_stmt current_scope_loc
-  | Ast.While(_, body) -> 
+  | Ast.While(guard, body) -> 
+    let%bind _ = Declarations_analyzer.check_accesses guard global_scope current_scope in 
     add_from_stmt body current_scope_loc
   | Ast.Block (stmtordecs) -> (
     let%bind upper_scope = read current_scope_loc in 
     let block_scope = Symbol_table.begin_block upper_scope in 
     repository := Repository.add (Location.show_code_pos stmt_location) block_scope !repository;
     add_from_stmtordecs stmtordecs stmt_location)
-  | _ -> Ok()
+  | Ast.Expr e ->
+    Declarations_analyzer.check_accesses e global_scope current_scope
+  | Ast.Return(Some e) -> 
+    Declarations_analyzer.check_accesses e global_scope current_scope
+  | Ast.Return None -> 
+    Ok()
 
 and add_from_stmtordecs stmtordecs current_scope_loc = 
   let open Ast in 
@@ -58,7 +58,7 @@ and add_from_stmtordecs stmtordecs current_scope_loc =
       let%bind _ = update current_scope_loc stmtordec.loc (Symbol_builder.build_var id typ) in 
       let%bind current_scope = read current_scope_loc in 
       let symbol = Symbol_table.lookup id current_scope in 
-      check_array_size id symbol stmtordec.loc
+      Declarations_analyzer.check_array_size id symbol stmtordec.loc
   )) (Ok()) stmtordecs
 
 let add_from_fundecl fun_decl fun_decl_loc = 
@@ -85,12 +85,12 @@ let add_global_definition topdecl =
     let%bind _ = update global_scope_loc topdecl.loc (Symbol_builder.build_extern_var id typ) in
     let%bind global_scope = read global_scope_loc in 
     let symbol = Symbol_table.lookup id global_scope in 
-    check_array_size id symbol topdecl.loc
+    Declarations_analyzer.check_array_size id symbol topdecl.loc
   | Ast.Vardec (typ, id, false) -> 
     let%bind _ = update global_scope_loc topdecl.loc (Symbol_builder.build_var id typ) in 
     let%bind global_scope = read global_scope_loc in 
     let symbol = Symbol_table.lookup id global_scope in 
-    check_array_size id symbol topdecl.loc
+    Declarations_analyzer.check_array_size id symbol topdecl.loc
   | Ast.Fundecl fun_decl -> 
     update global_scope_loc topdecl.loc (Symbol_builder.build_fun fun_decl)
 

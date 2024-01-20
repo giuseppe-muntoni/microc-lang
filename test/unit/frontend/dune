@@ -1,4 +1,9 @@
 (test
+ (name declarations_analyzer_test)
+ (modules declarations_analyzer_test)
+ (libraries microc ounit2 test_utils))
+
+(test
  (name type_checker_test)
  (modules type_checker_test)
  (libraries microc ounit2 test_utils))

@@ -43,15 +43,13 @@ and check_types_accderef current_scope expr location =
     Error(location, TypeCheckerErr DerefNotPtr)
 
 and check_types_accvar current_scope id location = 
-  try
-    let symbol = Symbol_table.lookup id current_scope in 
-    match symbol with 
-    | Symbol.Var(typ, _) -> 
-      return typ
-    | _ -> 
-      Error(location, TypeCheckerErr(AccessToFun(id)))
-  with Symbol_table.NotFoundEntry _ -> 
-    Error(location, TypeCheckerErr(NotDeclaredVar(id)))
+  (* The symbol must be present due to declarations analysis *)
+  let symbol = Symbol_table.lookup id current_scope in 
+  match symbol with 
+  | Symbol.Var(typ, _) -> 
+    return typ
+  | _ -> 
+    Error(location, TypeCheckerErr(AccessToFun(id)))
 
 and check_types_expr current_scope expr = 
   let open Ast in
@@ -181,18 +179,16 @@ and check_types_call current_scope (fname, actual_params) location =
       return (actual_type::actual_types)
     ) (Ok([])) actual_params) in 
   let actual_types = List.rev actual_types in
-  try
-    let symbol = Symbol_table.lookup fname current_scope in
-    match symbol with
-    | Symbol.Fun(return_type, params) -> 
-      let params = List.map fst params in 
-      if (List.equal (check_match_actual_formal) params actual_types) then
-        return(PrimitiveType return_type)
-      else 
-        Error(location, TypeCheckerErr(WrongActualParamsType(fname, params, actual_types)))
-    | _ -> 
-      Error(location, TypeCheckerErr(CalledVar(fname)))
-  with Symbol_table.NotFoundEntry _ -> Error(location, TypeCheckerErr(NotDeclaredFun(fname)))
+  let symbol = Symbol_table.lookup fname current_scope in
+  match symbol with
+  | Symbol.Fun(return_type, params) -> 
+    let params = List.map fst params in 
+    if (List.equal (check_match_actual_formal) params actual_types) then
+      return(PrimitiveType return_type)
+    else 
+      Error(location, TypeCheckerErr(WrongActualParamsType(fname, params, actual_types)))
+  | _ -> 
+    Error(location, TypeCheckerErr(CalledVar(fname)))
 
 let rec check_types_stmt (current_fun_name, current_fun_symbol) current_scope stmt = 
   let open Ast in

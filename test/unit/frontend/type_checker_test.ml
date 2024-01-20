@@ -99,11 +99,7 @@ let failing_tests =
     "ill-typed program: fail-assign8"   >:: (ill_typed_test   "fail-assign8"  (TypeCheckerErr(WrongBinOpType(Ast.Add))));
     "ill-typed program: fail-expr1"     >:: (ill_typed_test   "fail-expr1"    (TypeCheckerErr(WrongBinOpType(Ast.Add))));
     "ill-typed program: fail-expr2"     >:: (ill_typed_test   "fail-expr2"    (TypeCheckerErr(WrongBinOpType(Ast.Add))));
-    "ill-typed program: fail-for1"      >:: (ill_typed_test   "fail-for1"     (TypeCheckerErr(NotDeclaredVar("j"))));
-    "ill-typed program: fail-for2"      >:: (ill_typed_test   "fail-for2"     (TypeCheckerErr(NotDeclaredVar("j"))));
     "ill-typed program: fail-for3"      >:: (ill_typed_test   "fail-for3"     (TypeCheckerErr(GuardNotBool)));
-    "ill-typed program: fail-for4"      >:: (ill_typed_test   "fail-for4"     (TypeCheckerErr(NotDeclaredVar("j"))));
-    "ill-typed program: fail-for5"      >:: (ill_typed_test   "fail-for5"     (TypeCheckerErr(NotDeclaredFun("foo"))));
     "ill-typed program: fail-func1"     >:: (ill_symbol_test  "fail-func1"    (SymbolErr(DuplicateEntry("bar", Symbol.Fun(VoidType, [])))));
     "ill-typed program: fail-func2"     >:: (ill_symbol_test  "fail-func2"    (SymbolErr(DuplicateEntry("a", Symbol.Var(PrimitiveType(Number IntType), false)))));
     "ill-typed program: fail-func3"     >:: (ill_symbol_test  "fail-func3"    (SymbolErr(VoidVarDecl("b"))));
@@ -158,13 +154,10 @@ let failing_tests =
     "ill-typed program: fail-global1"     >:: (ill_symbol_test  "fail-global1"    (SymbolErr(VoidVarDecl("a"))));
     "ill-typed program: fail-global2"     >:: (ill_symbol_test  "fail-global2"    (SymbolErr(DuplicateEntry("b", Symbol.Var(PrimitiveType(Number IntType), false)))));
     "ill-typed program: fail-if1"         >:: (ill_typed_test   "fail-if1"        (TypeCheckerErr(GuardNotBool)));
-    "ill-typed program: fail-if2"         >:: (ill_typed_test   "fail-if2"        (TypeCheckerErr(NotDeclaredVar("foo"))));
-    "ill-typed program: fail-if3"         >:: (ill_typed_test   "fail-if3"        (TypeCheckerErr(NotDeclaredVar("bar"))));
     "ill-typed program: fail-local1"      >:: (ill_symbol_test  "fail-local1"     (SymbolErr(DuplicateEntry("i", Symbol.Var(PrimitiveType (Number IntType), false)))));
     "ill-typed program: fail-return1"     >:: (ill_typed_test   "fail-return1"    (TypeCheckerErr(WrongReturnType("main", PrimitiveType(Number IntType), PrimitiveType BoolType))));
     "ill-typed program: fail-return2"     >:: (ill_typed_test   "fail-return2"    (TypeCheckerErr(WrongReturnType("foo", PrimitiveType VoidType, PrimitiveType(Number IntType)))));
     "ill-typed program: fail-while1"      >:: (ill_typed_test   "fail-while1"     (TypeCheckerErr(GuardNotBool)));
-    "ill-typed program: fail-while2"      >:: (ill_typed_test   "fail-while2"     (TypeCheckerErr(NotDeclaredFun("foo"))));
     "ill-typed program: fail-string2"     >:: (ill_typed_test   "fail-string2"    (TypeCheckerErr(ArrNotAssignable(
       CompoundType(Array {
         elements_type = CharType;

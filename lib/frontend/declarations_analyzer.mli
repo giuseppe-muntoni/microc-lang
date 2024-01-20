@@ -1,0 +1,2 @@
+val check_array_size: Ast.identifier -> Symbol.t -> Location.code_pos -> (unit, Location.code_pos * Semantic_errors.t) result
+val check_accesses: Ast.expr -> Symbol.t Symbol_table.t -> Symbol.t Symbol_table.t -> (unit, Location.code_pos * Semantic_errors.t) result

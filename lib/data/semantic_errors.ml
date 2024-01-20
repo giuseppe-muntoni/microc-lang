@@ -1,6 +1,7 @@
 type t = 
   | SymbolErr of symbol_err
   | SymbolTablesRepositoryErr of repository_err 
+  | DeclarationsErr of decl_err
   | TypeCheckerErr of type_checker_err
   | ReturnAnalyzerErr of return_analyzer_err 
   | DeadcodeFound of deadcode_type
@@ -10,12 +11,16 @@ and symbol_err =
   | DuplicateEntry of Ast.identifier * Symbol.t
   | MultiDimArray of Ast.identifier
   | VoidVarDecl of Ast.identifier
-  | ArrayVarWithoutSize of Ast.identifier
   [@@deriving show]
 
 and repository_err = 
   | ScopeNotFound
   [@@deriving show]
+
+and decl_err = 
+  | ArrayVarWithoutSize of Ast.identifier
+  | NotDeclaredVar of Ast.identifier
+  | NotDeclaredFun of Ast.identifier
 
 and type_checker_err =
   | StmtNotVoid 
@@ -27,8 +32,6 @@ and type_checker_err =
   | NegToNonNumeric of Types.data_type
   | NotNonBool of Types.data_type
   | WrongBinOpType of Ast.binop
-  | NotDeclaredVar of Ast.identifier
-  | NotDeclaredFun of Ast.identifier
   | CalledVar of Ast.identifier
   | WrongActualParamsType of Ast.identifier * Types.data_type list * Types.data_type list
   | AccessToFun of Ast.identifier
@@ -54,11 +57,15 @@ let to_string error = match error with
     (match error with 
     | DuplicateEntry(id, _) -> String.concat " " ["You are trying to define a symbol with name"; id; "that is already used in the current scope"]
     | MultiDimArray id -> String.concat " " ["The variable"; id; "is a multi-dimensional array that is not supported"]
-    | VoidVarDecl id -> String.concat " " ["You are trying to define"; id; "as a void variable. It is forbidden."]
-    | ArrayVarWithoutSize id -> String.concat " " ["The array"; id; "does not specify the size, but is mandatory"])
+    | VoidVarDecl id -> String.concat " " ["You are trying to define"; id; "as a void variable. It is forbidden."])
   | SymbolTablesRepositoryErr error -> 
     (match error with
     | ScopeNotFound -> "Internal error: the scope requested does not exists")
+  | DeclarationsErr error -> 
+    (match error with
+    | ArrayVarWithoutSize id -> String.concat " " ["The array"; id; "does not specify the size, but is mandatory"]
+    | NotDeclaredVar id -> String.concat " " ["You are trying to access a variable called"; id; "that is not declared"]
+    | NotDeclaredFun id -> String.concat " " ["You are trying to call a function called"; id; "that is not declared"])
   | TypeCheckerErr error -> 
     (match error with
     | StmtNotVoid -> "A statement must have type void"
@@ -70,8 +77,6 @@ let to_string error = match error with
     | NegToNonNumeric t -> String.concat " " ["The - unary operator can be applied only to int and float but here is applied to a"; Types.to_string t]
     | NotNonBool t -> String.concat " " ["The ! unary operator can be applied only to bool but here is applied to a"; Types.to_string t]
     | WrongBinOpType binop -> String.concat " " ["The type of the operands of"; Ast.show_binop binop; "is incorrect"]
-    | NotDeclaredVar id -> String.concat " " ["You are trying to access a variable called"; id; "that is not declared"]
-    | NotDeclaredFun id -> String.concat " " ["You are trying to call a function called"; id; "that is not declared"]
     | CalledVar id -> String.concat " " ["You are trying to call"; id; "that is not a function, but a variable"]
     | WrongActualParamsType(id, formals_t, actuals_t) -> 
       let formals_str = String.concat ", " (List.map (Types.to_string) formals_t) in 
