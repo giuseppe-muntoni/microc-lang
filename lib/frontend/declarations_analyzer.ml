@@ -1,8 +1,9 @@
 open Semantic_errors
 open Base.Result.Let_syntax
 
-let check_array_size id symbol location = match symbol with 
-  | Symbol.Var(Types.CompoundType(Types.Array array_info), _) -> 
+let check_array_size id symbol location = match symbol with
+  | Symbol.GlobalVar(Types.CompoundType(Types.Array array_info), _)
+  | Symbol.LocalVar(Types.CompoundType(Types.Array array_info), _) -> 
     let open Types in 
     if (snd(List.hd array_info.sizes) = None) then
       Error(location, DeclarationsErr(ArrayVarWithoutSize id))

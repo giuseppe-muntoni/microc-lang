@@ -17,3 +17,10 @@ let create_ast sample =
   let sample = Bytes.to_string s in 
   let lexbuf = Lexing.from_string ~with_positions:true sample in 
   Parsing.parse Scanner.next_token lexbuf
+
+let eq_symbol (id1, symbol1) (id2, symbol2) = id1 = id2 &&
+  match (symbol1, symbol2) with 
+  | (Symbol.LocalVar(typ1, _), Symbol.LocalVar(typ2, _)) -> 
+    typ1 = typ2
+  | _ ->
+    symbol1 = symbol2 

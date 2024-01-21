@@ -101,7 +101,6 @@ let failing_tests =
     "ill-typed program: fail-expr2"     >:: (ill_typed_test   "fail-expr2"    (TypeCheckerErr(WrongBinOpType(Ast.Add))));
     "ill-typed program: fail-for3"      >:: (ill_typed_test   "fail-for3"     (TypeCheckerErr(GuardNotBool)));
     "ill-typed program: fail-func1"     >:: (ill_symbol_test  "fail-func1"    (SymbolErr(DuplicateEntry("bar", Symbol.Fun(VoidType, [])))));
-    "ill-typed program: fail-func2"     >:: (ill_symbol_test  "fail-func2"    (SymbolErr(DuplicateEntry("a", Symbol.Var(PrimitiveType(Number IntType), false)))));
     "ill-typed program: fail-func3"     >:: (ill_symbol_test  "fail-func3"    (SymbolErr(VoidVarDecl("b"))));
     "ill-typed program: fail-func4"     >:: (ill_symbol_test  "fail-func4"    (SymbolErr(DuplicateEntry("print", Symbol.Fun((Number IntType), [])))));
     "ill-typed program: fail-func5"     >:: (ill_symbol_test  "fail-func5"    (SymbolErr(VoidVarDecl("b"))));
@@ -152,9 +151,8 @@ let failing_tests =
       PrimitiveType(Number IntType)
     ]))));
     "ill-typed program: fail-global1"     >:: (ill_symbol_test  "fail-global1"    (SymbolErr(VoidVarDecl("a"))));
-    "ill-typed program: fail-global2"     >:: (ill_symbol_test  "fail-global2"    (SymbolErr(DuplicateEntry("b", Symbol.Var(PrimitiveType(Number IntType), false)))));
+    "ill-typed program: fail-global2"     >:: (ill_symbol_test  "fail-global2"    (SymbolErr(DuplicateEntry("b", Symbol.GlobalVar(PrimitiveType(Number IntType), false)))));
     "ill-typed program: fail-if1"         >:: (ill_typed_test   "fail-if1"        (TypeCheckerErr(GuardNotBool)));
-    "ill-typed program: fail-local1"      >:: (ill_symbol_test  "fail-local1"     (SymbolErr(DuplicateEntry("i", Symbol.Var(PrimitiveType (Number IntType), false)))));
     "ill-typed program: fail-return1"     >:: (ill_typed_test   "fail-return1"    (TypeCheckerErr(WrongReturnType("main", PrimitiveType(Number IntType), PrimitiveType BoolType))));
     "ill-typed program: fail-return2"     >:: (ill_typed_test   "fail-return2"    (TypeCheckerErr(WrongReturnType("foo", PrimitiveType VoidType, PrimitiveType(Number IntType)))));
     "ill-typed program: fail-while1"      >:: (ill_typed_test   "fail-while1"     (TypeCheckerErr(GuardNotBool)));

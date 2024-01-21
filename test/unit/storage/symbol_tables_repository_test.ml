@@ -20,26 +20,26 @@ let expected_symbols_test_ex6 =
       ("print_float", Symbol.Fun(VoidType, [(PrimitiveType(Number FloatType), "x")]));
     ];
     [
-      ("n", Symbol.Var(PrimitiveType(Number IntType), false));
-      ("res", Symbol.Var(CompoundType(Pointer{pointed_type = Number(IntType); indirection = 1}), false))
+      ("n", Symbol.LocalVar(PrimitiveType(Number IntType), Location.dummy_code_pos));
+      ("res", Symbol.LocalVar(CompoundType(Pointer{pointed_type = Number(IntType); indirection = 1}), Location.dummy_code_pos))
     ];
     [
-      ("tmp", Symbol.Var(PrimitiveType(Number IntType), false))
+      ("tmp", Symbol.LocalVar(PrimitiveType(Number IntType), Location.dummy_code_pos))
     ];
     [
-      ("i", Symbol.Var(PrimitiveType(Number IntType), false));
-      ("n", Symbol.Var(PrimitiveType(Number IntType), false))
+      ("i", Symbol.LocalVar(PrimitiveType(Number IntType), Location.dummy_code_pos));
+      ("n", Symbol.LocalVar(PrimitiveType(Number IntType), Location.dummy_code_pos))
     ];
     [
-      ("n", Symbol.Var(PrimitiveType(Number IntType), false))
+      ("n", Symbol.LocalVar(PrimitiveType(Number IntType), Location.dummy_code_pos))
     ]
   ]
 
-let to_string = fun actual_symbols -> (
+let to_string = fun all_symbols -> (
   String.concat "\n------------\n" (List.map (
     fun symbols -> 
       String.concat "\n" (List.map(fun (id, symbol) -> (String.concat ":" [id; Symbol.show symbol])) symbols);
-  ) actual_symbols
+  ) all_symbols
 ))
 
 let create_test _ = 
@@ -50,7 +50,7 @@ let create_test _ =
     assert_bool (Semantic_errors.show (snd err)) false 
   | Ok() -> 
     let actual_symbols = List.map (Symbol_table.to_list) (Symbol_tables_repository.read_all ()) in
-    assert_equal ~cmp: (fun l1 l2 -> List.equal (=) l1 l2) ~printer: to_string expected_symbols_test_ex6 actual_symbols
+    assert_equal ~cmp: (fun l1 l2 -> List.equal (List.equal Utils.eq_symbol) l1 l2) ~printer: to_string expected_symbols_test_ex6 actual_symbols
 
 let tests = "Tests for module Symbol_table_repository" >::: [
     "each symbol is inserted in the right scope" >:: create_test;

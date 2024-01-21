@@ -42,14 +42,20 @@ and check_types_accderef current_scope expr location =
   | _ -> 
     Error(location, TypeCheckerErr DerefNotPtr)
 
-and check_types_accvar current_scope id location = 
+and check_types_accvar current_scope id acc_location = 
   (* The symbol must be present due to declarations analysis *)
   let symbol = Symbol_table.lookup id current_scope in 
   match symbol with 
-  | Symbol.Var(typ, _) -> 
+  | Symbol.LocalVar(typ, decl_location) -> 
+    if ((Location.compare_code_pos acc_location decl_location)) < 0 then 
+      let upper_scope = Symbol_table.end_block current_scope in 
+      check_types_accvar upper_scope id acc_location
+    else
+      return typ 
+  | Symbol.GlobalVar(typ, _) -> 
     return typ
-  | _ -> 
-    Error(location, TypeCheckerErr(AccessToFun(id)))
+  | Symbol.Fun _ -> 
+    Error(acc_location, TypeCheckerErr(AccessToFun(id)))
 
 and check_types_expr current_scope expr = 
   let open Ast in

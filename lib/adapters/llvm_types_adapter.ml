@@ -62,7 +62,8 @@ let adapt_param_to_lltype typ llvm_context =
 
 let adapt_symbol_to_lltype symbol llvm_context = 
   match symbol with 
-  | Symbol.Var(typ, _) ->
+  | Symbol.GlobalVar(typ, _)
+  | Symbol.LocalVar(typ, _) ->
     adapt_type_to_lltype typ llvm_context
   | Symbol.Fun(ret_type, params) -> 
     let ret_type = adapt_primitive_type_to_lltype ret_type llvm_context in 

@@ -285,7 +285,8 @@ let generate_fundecl_code fundecl global_symbol_table global_llvalues_table llvm
     | Block stmtordecs -> 
       (let fun_symbol = Symbol_table.lookup fundecl.fname global_symbol_table in 
       match fun_symbol with 
-      | Symbol.Var _ ->
+      | Symbol.GlobalVar _ 
+      | Symbol.LocalVar _ ->
         failwith "Unexpected error"
       | Symbol.Fun(ret_typ, formals) -> 
         let fun_llvalue = Symbol_table.lookup fundecl.fname global_llvalues_table in 
@@ -338,8 +339,9 @@ let generate_global_definitions topdecl global_symbol_table global_llvalues_tabl
       Llvm.declare_global var_lltype id llvm_module
     else 
       (match var_symbol with 
-      | Symbol.Fun _ -> failwith "Not possible!"
-      | Symbol.Var(t, _) ->  
+      | Symbol.Fun _ 
+      | Symbol.LocalVar _ -> failwith "Not possible!"
+      | Symbol.GlobalVar(t, _) -> 
         let global_init = Llvm_utils.get_global_init t llvm_context in 
         Llvm.define_global id global_init llvm_module)
     ) in Symbol_table.add_entry id var_llvalue global_llvalues_table

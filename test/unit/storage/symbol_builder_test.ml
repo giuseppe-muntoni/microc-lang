@@ -30,8 +30,8 @@ let build_fun_test _ =
 let build_var_test _ = 
   let open Types in 
   let global_scope = Symbol_table.empty_table in
-  let updated_scope = Symbol_builder.build_var "x" (Ast.TypA(Ast.TypC, Some 32)) global_scope in
-  let expected = Symbol.Var(
+  let updated_scope = Symbol_builder.build_global_var "x" (Ast.TypA(Ast.TypC, Some 32)) global_scope in
+  let expected = Symbol.GlobalVar(
       CompoundType(Array {
         elements_type = CharType;
         indirection = 0;
@@ -47,8 +47,8 @@ let build_var_test _ =
 let build_extern_var _ = 
   let open Types in 
   let global_scope = Symbol_table.empty_table in
-  let updated_scope = Symbol_builder.build_extern_var "x" (Ast.TypA(Ast.TypC, Some 32)) global_scope in
-  let expected = Symbol.Var(
+  let updated_scope = Symbol_builder.build_global_extern_var "x" (Ast.TypA(Ast.TypC, Some 32)) global_scope in
+  let expected = Symbol.GlobalVar(
       CompoundType(Array {
         elements_type = CharType;
         indirection = 0;
@@ -64,12 +64,12 @@ let build_extern_var _ =
 let build_vars_test _ = 
   let open Types in 
   let global_scope = Symbol_table.empty_table in
-  let updated_scope = Symbol_builder.build_vars [
+  let updated_scope = Symbol_builder.build_local_vars [
     (Ast.TypP(Ast.TypP(Ast.TypP(Ast.TypF))), "x");
     (Ast.TypA(Ast.TypP(Ast.TypP(Ast.TypB)), None), "y")
-  ] global_scope in 
-  let expected_x = (Symbol.Var((CompoundType(Pointer{pointed_type = Number(FloatType); indirection = 3})), false)) in 
-  let expected_y = (Symbol.Var(CompoundType(Array{elements_type = BoolType; indirection = 2; dimensions = 1; sizes = [1, None]}), false)) in
+  ] Location.dummy_code_pos global_scope in 
+  let expected_x = (Symbol.LocalVar((CompoundType(Pointer{pointed_type = Number(FloatType); indirection = 3})), Location.dummy_code_pos)) in 
+  let expected_y = (Symbol.LocalVar(CompoundType(Array{elements_type = BoolType; indirection = 2; dimensions = 1; sizes = [1, None]}), Location.dummy_code_pos)) in
   match updated_scope with
   | Error(err) ->
     assert_bool (String.concat "" ["Expected a success but this error was returned: "; Semantic_errors.show err]) false 
@@ -80,14 +80,14 @@ let build_vars_test _ =
 let duplicate_entry_error_test _ = 
   let open Types in 
   let global_scope = Symbol_table.empty_table in
-  let updated_scope = Symbol_builder.build_vars [
+  let updated_scope = Symbol_builder.build_local_vars [
     (Ast.TypP(Ast.TypP(Ast.TypP(Ast.TypF))), "x");
     (Ast.TypA(Ast.TypP(Ast.TypP(Ast.TypB)), None), "x")
-  ] global_scope in 
+  ] Location.dummy_code_pos global_scope in 
   match updated_scope with
   | Error(err) -> 
     let expected = Semantic_errors.SymbolErr(Semantic_errors.DuplicateEntry(
-      "x", (Symbol.Var(CompoundType(Array{elements_type = BoolType; indirection = 2; dimensions = 1; sizes = [1, None]}), false)))
+      "x", (Symbol.LocalVar(CompoundType(Array{elements_type = BoolType; indirection = 2; dimensions = 1; sizes = [1, None]}), Location.dummy_code_pos)))
     ) in 
     assert_equal ~printer: Semantic_errors.show expected err
   | Ok(_) ->
@@ -96,7 +96,7 @@ let duplicate_entry_error_test _ =
 let multidim_array_error_test _ = 
   let open Ast in
   let global_scope = Symbol_table.empty_table in
-  let updated_scope = Symbol_builder.build_var "x" (TypA(TypA(TypI, None), None)) global_scope in 
+  let updated_scope = Symbol_builder.build_global_var "x" (TypA(TypA(TypI, None), None)) global_scope in 
   match updated_scope with 
   | Error(err) ->
     let expected = Semantic_errors.SymbolErr(Semantic_errors.MultiDimArray "x") in
@@ -106,7 +106,7 @@ let multidim_array_error_test _ =
 
 let void_var_error_test _ = 
   let global_scope = Symbol_table.empty_table in
-  let updated_scope = Symbol_builder.build_var "x" Ast.TypV global_scope in 
+  let updated_scope = Symbol_builder.build_global_var "x" Ast.TypV global_scope in 
   match updated_scope with 
   | Error(err) ->
     let expected = Semantic_errors.SymbolErr(Semantic_errors.VoidVarDecl "x") in

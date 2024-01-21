@@ -1,6 +1,8 @@
 open Base.Result.Let_syntax
 open Semantic_errors
 
+type var_scope = LocalScope | GlobalScope
+
 let is_multidim_array data_type = 
   let open Types in 
   match data_type with 
@@ -24,7 +26,7 @@ let build_fun fun_decl scope =
     with Symbol_table.DuplicateEntry _ ->
       Error(SymbolErr(DuplicateEntry(fun_decl.fname, symbol)))
 
-let _build_var is_extern id typ scope  = 
+let _build_var is_extern location var_scope id typ scope  = 
   let open Symbol in
   let open Types in
   let typ = Frontend_types_adapter.adapt_ast_type typ in 
@@ -34,7 +36,11 @@ let _build_var is_extern id typ scope  =
   | (false, true) -> 
     Error(SymbolErr(VoidVarDecl id))
   | (false, false) -> (
-    let symbol = Var(typ, is_extern) in 
+    let symbol = (match var_scope with 
+    | LocalScope -> 
+      LocalVar(typ, location)
+    | GlobalScope -> 
+      GlobalVar(typ, is_extern)) in 
     try
       Ok(Symbol_table.add_entry id symbol scope)
     with Symbol_table.DuplicateEntry _ -> 
@@ -42,14 +48,17 @@ let _build_var is_extern id typ scope  =
   | (true, true) -> 
     failwith "Not possible!"
 
-let build_var = 
-  _build_var false
+let build_local_var id typ location scope = 
+  _build_var false location LocalScope id typ scope
 
-let build_extern_var = 
-  _build_var true
+let build_global_extern_var = 
+  _build_var true Location.dummy_code_pos GlobalScope
 
-let build_vars types scope = 
+let build_global_var = 
+  _build_var false Location.dummy_code_pos GlobalScope
+
+let build_local_vars types location scope = 
   List.fold_left (fun scope (typ, id) -> (
   let%bind scope = scope in 
-  build_var id typ scope
+  build_local_var id typ location scope
 )) (Ok(scope)) types

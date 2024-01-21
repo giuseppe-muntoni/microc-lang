@@ -58,8 +58,9 @@ module Unused_vars_detector : sig
 end
 = 
 struct
+  (*module UnusedSet = Set.Make(String)*)
   let detect _program = []
-end 
+end
 
 let detect_deadcode ast = 
   let unreachable_code = Unreachable_code_detector.detect ast in 

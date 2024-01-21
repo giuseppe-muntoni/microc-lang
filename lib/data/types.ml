@@ -12,7 +12,7 @@ type primitive_type =
 
 type array_info = {
     elements_type   : primitive_type;
-    indirection     : int;
+    indirection     : int; 
     dimensions      : int;
     sizes           : (int * int option) list;
 }

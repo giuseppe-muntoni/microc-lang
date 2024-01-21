@@ -55,7 +55,7 @@ and add_from_stmtordecs stmtordecs current_scope_loc =
     | Ast.Stmt(stmt) -> 
       add_from_stmt stmt current_scope_loc
     | Ast.Dec(typ, id) -> 
-      let%bind _ = update current_scope_loc stmtordec.loc (Symbol_builder.build_var id typ) in 
+      let%bind _ = update current_scope_loc stmtordec.loc (Symbol_builder.build_local_var id typ stmtordec.loc) in 
       let%bind current_scope = read current_scope_loc in 
       let symbol = Symbol_table.lookup id current_scope in 
       Declarations_analyzer.check_array_size id symbol stmtordec.loc
@@ -71,7 +71,7 @@ let add_from_fundecl fun_decl fun_decl_loc =
       let%bind global_scope = read global_scope_loc in 
       let fun_scope = Symbol_table.begin_block global_scope in 
       repository := Repository.add (Location.show_code_pos body.loc) fun_scope !repository;
-      let%bind _ = update body.loc fun_decl_loc (Symbol_builder.build_vars fun_decl.formals) in
+      let%bind _ = update body.loc fun_decl_loc (Symbol_builder.build_local_vars fun_decl.formals fun_decl_loc) in
       add_from_stmtordecs stmtordecs body.loc) 
     | _ -> failwith "Unexpected error: the body of a function must be a block, syntactically"
     )
@@ -82,12 +82,12 @@ let add_global_definition topdecl =
   let global_scope_loc = Location.dummy_code_pos in 
   match topdecl.node with 
   | Ast.Vardec (typ, id, true) -> 
-    let%bind _ = update global_scope_loc topdecl.loc (Symbol_builder.build_extern_var id typ) in
+    let%bind _ = update global_scope_loc topdecl.loc (Symbol_builder.build_global_extern_var id typ) in
     let%bind global_scope = read global_scope_loc in 
     let symbol = Symbol_table.lookup id global_scope in 
     Declarations_analyzer.check_array_size id symbol topdecl.loc
   | Ast.Vardec (typ, id, false) -> 
-    let%bind _ = update global_scope_loc topdecl.loc (Symbol_builder.build_var id typ) in 
+    let%bind _ = update global_scope_loc topdecl.loc (Symbol_builder.build_global_var id typ) in 
     let%bind global_scope = read global_scope_loc in 
     let symbol = Symbol_table.lookup id global_scope in 
     Declarations_analyzer.check_array_size id symbol topdecl.loc
