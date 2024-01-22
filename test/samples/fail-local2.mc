@@ -1,7 +1,7 @@
 int foo(int a, bool b)
 {
   int c;
-  bool d;
+  bool d; // Now fails because unused
 
   c = a;
 

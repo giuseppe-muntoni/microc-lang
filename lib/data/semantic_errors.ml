@@ -47,6 +47,7 @@ and return_analyzer_err =
 and deadcode_type = 
   | StmtUnreachable
   | UnusedVar of unused_type * Ast.identifier
+[@@deriving ord, eq]
 
 and unused_type = 
   | Local
