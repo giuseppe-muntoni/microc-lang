@@ -166,17 +166,25 @@ let () =
       let final_module = link_modules (Array.to_list modules) in 
       match final_module with
       | Some final_module -> 
-        assert(Llvm_bitwriter.write_bitcode_file final_module "./tmp.bc");
+        Llvm_all_backends.initialize ();
+        let target_triple = Llvm_target.Target.default_triple () in 
+        let machine_target = Llvm_target.Target.by_triple target_triple in 
+        let generator = Llvm_target.TargetMachine.create ~triple: target_triple ~cpu:"generic" machine_target in
+        let data_layout = Llvm_target.TargetMachine.data_layout generator in 
+        let data_layout = Llvm_target.DataLayout.as_string data_layout in 
+        Llvm.set_data_layout data_layout final_module;
+        Llvm.set_target_triple target_triple final_module;
+        Llvm_target.TargetMachine.emit_to_file final_module Llvm_target.CodeGenFileType.ObjectFile "./tmp.o" generator;
         let args = (
           if (!rts_path = "") then 
-            [|"clang"; "./tmp.bc"; "-o"; !outputfile|]
+            [|"clang"; "./tmp.o"; "-o"; !outputfile|]
           else 
-            [|"clang"; "./tmp.bc"; !rts_path; "-o"; !outputfile|]
+            [|"clang"; "./tmp.o"; !rts_path; "-o"; !outputfile|]
         ) in 
         let in_ch = Unix.open_process_args_in "clang" args in 
         let pid = Unix.process_in_pid in_ch in 
         let _ = Unix.waitpid [] pid in
-        let _ = Unix.open_process_args_in "rm" [|"rm"; "./tmp.bc"|] in ()
+        let _ = Unix.open_process_args_in "rm" [|"rm"; "./tmp.o"|] in ()
       | None -> ())
     | (1, action) -> (
       let source = load_file (Array.get sources 0) in
@@ -187,13 +195,13 @@ let () =
       with
       | Scanner.Lexing_error (pos, msg) 
       | Parsing.Syntax_error (pos, msg) ->
-          print_endline (String.concat " " ["Error in file"; (Array.get sources 0)]);
-          handle_syntatic_error source pos msg;
+        print_endline (String.concat " " ["Error in file"; (Array.get sources 0)]);
+        handle_syntatic_error source pos msg;
       | Semantic_analysis.Semantic_errors errors ->
-          print_endline (String.concat " " ["Error in file"; (Array.get sources 0)]);
-          List.iter (fun (pos, msg) -> (
-              handle_semantic_error source pos msg;
-            )) errors;)
+        print_endline (String.concat " " ["Error in file"; (Array.get sources 0)]);
+        List.iter (fun (pos, msg) -> (
+          handle_semantic_error source pos msg;
+        )) errors;)
     | _ -> 
       Arg.usage spec_list usage
   with Sys_error msg -> Printf.eprintf "*** Error %s ***\n" msg

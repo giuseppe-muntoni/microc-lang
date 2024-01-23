@@ -1,6 +1,6 @@
 (library
  (name microc)
- (libraries base llvm llvm.analysis llvm.scalar_opts)
+ (libraries base llvm llvm.analysis llvm.scalar_opts llvm.all_backends llvm.target)
  (preprocess
   (pps ppx_let ppx_deriving.show ppx_deriving.ord ppx_deriving.eq)))
 
