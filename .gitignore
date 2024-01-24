@@ -2,4 +2,4 @@
 _build/
 .vscode/launch.json
 executables/
-output.txt
+output/
