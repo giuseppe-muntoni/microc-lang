@@ -1,0 +1,8 @@
+void main() {
+    print(0x0);
+    print(0x200);
+    print(0xA);
+    print(0xa);
+    print(0xE);
+    print(0xFFF);
+}

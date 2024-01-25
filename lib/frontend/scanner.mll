@@ -29,7 +29,7 @@
 (* Scanner specification *)
 let id = ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '0'-'9' '_']*
 let intLitBase10 = ['1'-'9']['0'-'9']* | '0'
-let intLitHex = '0''x'['0'-'9']* (*WRONG*)
+let intLitHex = '0''x'['0'-'9''a'-'f''A'-'F']*
 let floatLit = (intLitBase10)'.'['0'-'9']*
 
 rule next_token = parse
