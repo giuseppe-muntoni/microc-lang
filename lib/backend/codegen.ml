@@ -160,7 +160,6 @@ and generate_short_circuit_and e1 e2 llvm_context and_lhs_bb and_lhs_builder fun
   let (op1, and_lhs_bb, and_lhs_builder) = generate_expr_code e1 llvm_context and_lhs_bb and_lhs_builder fun_llvalue llvalues_table symbol_table in 
   let _ = Llvm.build_cond_br op1 and_rhs_bb and_end_bb and_lhs_builder in
   let (op2, and_rhs_bb, and_rhs_builder) = generate_expr_code e2 llvm_context and_rhs_bb and_rhs_builder fun_llvalue llvalues_table symbol_table in 
-  let op2 = Llvm.build_icmp (Llvm.Icmp.Eq) op2 (Llvm.const_int (Llvm.i1_type llvm_context) 1) "op2" and_rhs_builder in
   let _ = Llvm.build_br and_end_bb and_rhs_builder in 
   let and_res = Llvm.build_phi [
     ((Llvm.const_int (Llvm.i1_type llvm_context) 0), and_lhs_bb);
@@ -176,7 +175,6 @@ and generate_short_circuit_or e1 e2 llvm_context or_lhs_bb or_lhs_builder fun_ll
   let (op1, or_lhs_bb, or_lhs_builder) = generate_expr_code e1 llvm_context or_lhs_bb or_lhs_builder fun_llvalue llvalues_table symbol_table in 
   let _ = Llvm.build_cond_br op1 or_end_bb or_rhs_bb or_lhs_builder in
   let (op2, or_rhs_bb, or_rhs_builder) = generate_expr_code e2 llvm_context or_rhs_bb or_rhs_builder fun_llvalue llvalues_table symbol_table in 
-  let op2 = Llvm.build_icmp (Llvm.Icmp.Eq) op2 (Llvm.const_int (Llvm.i1_type llvm_context) 1) "op2" or_rhs_builder in
   let _ = Llvm.build_br or_end_bb or_rhs_builder in 
   let or_res = Llvm.build_phi [
     ((Llvm.const_int (Llvm.i1_type llvm_context) 1), or_lhs_bb);
