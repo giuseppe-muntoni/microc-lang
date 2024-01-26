@@ -1,3 +1,5 @@
+(** Module intended to the definition of the various types of errors that can arise during the semantic analysis *)
+
 type t = 
   | SymbolErr of symbol_err
   | SymbolTablesRepositoryErr of repository_err 
@@ -53,7 +55,8 @@ and unused_type =
   | Local
   | Param 
 
-let to_string error = match error with 
+(** Generates a string version of the error [error] *)
+  let to_string error = match error with 
   | SymbolErr error ->
     (match error with 
     | DuplicateEntry(id, _) -> String.concat " " ["You are trying to define a symbol with name"; id; "that is already used in the current scope"]

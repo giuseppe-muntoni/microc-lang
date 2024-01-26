@@ -1,13 +1,16 @@
+(** Returns true if at least one between [op1] and [op2] is a float *)
 let is_float_op op1 op2 llvm_context = 
   ((Llvm.type_of op1) = (Llvm.float_type llvm_context)) 
   || ((Llvm.type_of op2) = (Llvm.float_type llvm_context))
 
+(** Generates an instruction to convert a value of type int to a value of type float in the position specified by [builder] *)
 let convert_to_float value llvm_context builder = 
   if (Llvm.type_of value) = (Llvm.i32_type llvm_context) then 
     Llvm.build_sitofp value (Llvm.float_type llvm_context) "float" builder
   else
     value 
 
+(** Returns true if a basic block is terminated by a return *)
 let rec is_bblock_terminated stmt =
   let open Ast in 
   match stmt.node with 
@@ -25,6 +28,7 @@ let rec is_bblock_terminated stmt =
     | None -> false
     | Some _ -> true
 
+(** Returns an initializer for a global variable of type [typ] *)
 let rec get_global_init typ llcontext = 
   let open Types in 
   match typ with 

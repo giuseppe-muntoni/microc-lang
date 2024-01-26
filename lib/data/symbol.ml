@@ -1,4 +1,6 @@
-type is_extern = bool
+(** Module intended to the definition of the various types of symbols *)
+
+type is_extern = bool (** True if a global variable is external *)
 and t = 
   | GlobalVar of Types.data_type * is_extern
   | LocalVar of Types.data_type * Location.code_pos

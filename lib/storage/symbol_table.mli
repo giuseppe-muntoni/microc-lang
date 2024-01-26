@@ -1,3 +1,5 @@
+(** Module intended to the definition of the abstract data type symbol table *)
+
 exception DuplicateEntry of Ast.identifier
 exception NotFoundEntry of Ast.identifier
 
