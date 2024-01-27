@@ -23,6 +23,7 @@ and decl_err =
   | ArrayVarWithoutSize of Ast.identifier
   | NotDeclaredVar of Ast.identifier
   | NotDeclaredFun of Ast.identifier
+  | CalledVar of Ast.identifier
 
 and type_checker_err =
   | StmtNotVoid 
@@ -34,7 +35,6 @@ and type_checker_err =
   | NegToNonNumeric of Types.data_type
   | NotNonBool of Types.data_type
   | WrongBinOpType of Ast.binop
-  | CalledVar of Ast.identifier
   | WrongActualParamsType of Ast.identifier * Types.data_type list * Types.data_type list
   | AccessToFun of Ast.identifier
   | DerefNotPtr
@@ -69,7 +69,8 @@ and unused_type =
     (match error with
     | ArrayVarWithoutSize id -> String.concat " " ["The array"; id; "does not specify the size, but is mandatory"]
     | NotDeclaredVar id -> String.concat " " ["You are trying to access a variable called"; id; "that is not declared"]
-    | NotDeclaredFun id -> String.concat " " ["You are trying to call a function called"; id; "that is not declared"])
+    | NotDeclaredFun id -> String.concat " " ["You are trying to call a function called"; id; "that is not declared"]
+    | CalledVar id -> String.concat " " ["You are trying to call"; id; "that is not a function, but a variable"])
   | TypeCheckerErr error -> 
     (match error with
     | StmtNotVoid -> "A statement must have type void"
@@ -81,7 +82,6 @@ and unused_type =
     | NegToNonNumeric t -> String.concat " " ["The - unary operator can be applied only to int and float but here is applied to a"; Types.to_string t]
     | NotNonBool t -> String.concat " " ["The ! unary operator can be applied only to bool but here is applied to a"; Types.to_string t]
     | WrongBinOpType binop -> String.concat " " ["The type of the operands of"; Ast.show_binop binop; "is incorrect"]
-    | CalledVar id -> String.concat " " ["You are trying to call"; id; "that is not a function, but a variable"]
     | WrongActualParamsType(id, formals_t, actuals_t) -> 
       let formals_str = String.concat ", " (List.map (Types.to_string) formals_t) in 
       let actuals_str = String.concat ", " (List.map (Types.to_string) actuals_t) in 

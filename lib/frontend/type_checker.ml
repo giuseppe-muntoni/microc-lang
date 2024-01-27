@@ -185,7 +185,8 @@ and check_types_call current_scope (fname, actual_params) location =
       return (actual_type::actual_types)
     ) (Ok([])) actual_params) in 
   let actual_types = List.rev actual_types in
-  let symbol = Symbol_table.lookup fname current_scope in
+  let%bind global_scope = Symbol_tables_repository.read Location.dummy_code_pos in 
+  let symbol = Symbol_table.lookup fname global_scope in
   match symbol with
   | Symbol.Fun(return_type, params) -> 
     let params = List.map fst params in 
@@ -194,7 +195,8 @@ and check_types_call current_scope (fname, actual_params) location =
     else 
       Error(location, TypeCheckerErr(WrongActualParamsType(fname, params, actual_types)))
   | _ -> 
-    Error(location, TypeCheckerErr(CalledVar(fname)))
+    (* This is not possible due to declarations analysis *)
+    Error(location, DeclarationsErr(CalledVar(fname)))
 
 let rec check_types_stmt (current_fun_name, current_fun_symbol) current_scope stmt = 
   let open Ast in

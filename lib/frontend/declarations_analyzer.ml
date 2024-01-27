@@ -11,7 +11,7 @@ let check_array_size id symbol location = match symbol with
       Ok()
   | _ -> Ok()
 
-let rec check_accesses_acc access global_scope current_scope = 
+let rec check_accesses_acc access current_scope = 
   let open Ast in 
   match access.node with 
   | Ast.AccVar id -> (
@@ -21,33 +21,37 @@ let rec check_accesses_acc access global_scope current_scope =
     with Symbol_table.NotFoundEntry _ -> 
       Error(access.loc, DeclarationsErr(NotDeclaredVar(id))))
   | Ast.AccDeref expr -> 
-    check_accesses expr global_scope current_scope
+    check_accesses expr current_scope
   | Ast.AccIndex(access, expr) -> 
-    let%bind _ = check_accesses_acc access global_scope current_scope in 
-    check_accesses expr global_scope current_scope
+    let%bind _ = check_accesses_acc access current_scope in 
+    check_accesses expr current_scope
 
-and check_accesses expr global_scope current_scope = 
+and check_accesses expr current_scope = 
   let open Ast in 
   match expr.node with 
   | Ast.Access(access) -> 
-    check_accesses_acc access global_scope current_scope
+    check_accesses_acc access current_scope
   | Ast.Assign(access, expr) -> 
-    let%bind _ = check_accesses_acc access global_scope current_scope in 
-    check_accesses expr global_scope current_scope
+    let%bind _ = check_accesses_acc access current_scope in 
+    check_accesses expr current_scope
   | Ast.Addr(access) ->
-    check_accesses_acc access global_scope current_scope
+    check_accesses_acc access current_scope
   | Ast.UnaryOp(_, expr) ->
-    check_accesses expr global_scope current_scope
+    check_accesses expr current_scope
   | Ast.BinaryOp(_, expr1, expr2) -> 
-    let%bind _ = check_accesses expr1 global_scope current_scope in 
-    check_accesses expr2 global_scope current_scope
+    let%bind _ = check_accesses expr1 current_scope in 
+    check_accesses expr2 current_scope
   | Ast.Call(id, actuals) -> (
     try
-      let _ = Symbol_table.lookup id global_scope in 
-      List.fold_left (fun res actual -> (
-        let%bind _ = res in 
-        check_accesses actual global_scope current_scope
-      )) (Ok()) actuals
+      let symbol = Symbol_table.lookup id current_scope in 
+      match symbol with 
+      | Symbol.Fun _ -> (
+        List.fold_left (fun res actual -> (
+          let%bind _ = res in 
+          check_accesses actual current_scope
+        )) (Ok()) actuals)
+      | _ -> 
+        Error(expr.loc, DeclarationsErr(CalledVar(id)))
     with Symbol_table.NotFoundEntry _ ->
       Error(expr.loc, DeclarationsErr(NotDeclaredFun(id))))
   | _ -> Ok()

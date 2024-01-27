@@ -25,15 +25,14 @@ let update scope_loc decl_loc update_fun =
 
 let rec add_from_stmt stmt current_scope_loc = match stmt with
 | { Ast.loc = stmt_location; Ast.node = stmt } ->
-  let%bind global_scope = read Location.dummy_code_pos in 
   let%bind current_scope = read current_scope_loc in 
   match stmt with
   | Ast.If(guard, then_stmt, else_stmt) ->
-    let%bind _ = Declarations_analyzer.check_accesses guard global_scope current_scope in 
+    let%bind _ = Declarations_analyzer.check_accesses guard current_scope in 
     let%bind _ = add_from_stmt then_stmt current_scope_loc in
     add_from_stmt else_stmt current_scope_loc
   | Ast.While(guard, body) -> 
-    let%bind _ = Declarations_analyzer.check_accesses guard global_scope current_scope in 
+    let%bind _ = Declarations_analyzer.check_accesses guard current_scope in 
     add_from_stmt body current_scope_loc
   | Ast.Block (stmtordecs) -> (
     let%bind upper_scope = read current_scope_loc in 
@@ -41,9 +40,9 @@ let rec add_from_stmt stmt current_scope_loc = match stmt with
     repository := Repository.add (Location.show_code_pos stmt_location) block_scope !repository;
     add_from_stmtordecs stmtordecs stmt_location)
   | Ast.Expr e ->
-    Declarations_analyzer.check_accesses e global_scope current_scope
+    Declarations_analyzer.check_accesses e current_scope
   | Ast.Return(Some e) -> 
-    Declarations_analyzer.check_accesses e global_scope current_scope
+    Declarations_analyzer.check_accesses e current_scope
   | Ast.Return None -> 
     Ok()
 
