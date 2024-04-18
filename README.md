@@ -2,20 +2,14 @@
 
 MicroC is a subset of the language C with the following simplification:
 
-* It supports only integers (`int`), characters (`char`) and booleans (`bool`) as scalar values, array and pointers as compound data types;
-* There are no structures, unions, doubles, function pointer;
+* It supports only integers (`int`), characters (`char`), booleans (`bool`) and floats as scalar values, array and pointers as compound data types;
+* No function pointers;
 * No dynamic allocation of memory;
-* No multi-dimensional arrays;
 * No shorthand for initialize variable during declaration;
 * Functions can only return `void`, `int`, `bool`, `char`;
-* No pointer arithmetic;
-* Pointers and arrays are not interchangeable;
-* no separate compilation, all the code of a program must stay in a unique compilation unit;
-* there are only two library functions
-```C
-void print(int)  // it outputs an integer to standard output
-int getint()     // it inputs an integer from standard input 
-```
+* It has separate compilation but without preprocessor, include guards, and header files. Only simple declaration of external functions or variables in source files.
+* the runtime support is minimal and contains simple function to print and to read.
+* No overloading
 
 ## MicroC Tasks
 - [x] **Parsing**: Implementation of the scanner using Ocamllex and the lr(1) parser using Menhir
@@ -23,8 +17,12 @@ int getint()     // it inputs an integer from standard input
 - [x] **Code generation**: usage of the LLVM toolchain to compile a MicroC program to low level code (LLVM bitcode) and to perform some simple optimizations.
 
 **Extensions**:
+Here there are some extensions that I want to add to the language in its simplest version:
 - [ ] pre/post increment/decrement operators, i.e., `++` and `--`, and  abbreviation for assignment operators, i.e., `+=`, `-=`, `*=`, `/=` and `%=`;
+- [ ] add structures and unions as compound data type
 - [ ] pointers, arrays & multi-dimensional arrays as in C;
 - [x] floating point arithmetic and strings as in C, i.e. null-terminated arrays of characters;
 - [x] a new semantic analysis pass to detect deadcode;
 - [x] seperate compilation.
+
+The pdf microc-lang_report contains a simple formalization of the type system and the static analysis of the language.
