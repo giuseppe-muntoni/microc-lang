@@ -20,7 +20,7 @@ MicroC is a subset of the language C with the following simplification:
 Here there are some extensions that I want to add to the language in its simplest version:
 - [ ] pre/post increment/decrement operators, i.e., `++` and `--`, and  abbreviation for assignment operators, i.e., `+=`, `-=`, `*=`, `/=` and `%=`;
 - [ ] add structures and unions as compound data type
-- [ ] pointers, arrays & multi-dimensional arrays as in C;
+- [ ] pointers arithmetic and multi-dimensional arrays as in C;
 - [x] floating point arithmetic and strings as in C, i.e. null-terminated arrays of characters;
 - [x] a new semantic analysis pass to detect deadcode;
 - [x] seperate compilation.
